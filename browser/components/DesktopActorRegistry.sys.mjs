@@ -79,6 +79,28 @@ let JSPROCESSACTORS = {
  * available at https://firefox-source-docs.mozilla.org/dom/ipc/jsactors.html
  */
 let JSWINDOWACTORS = {
+  Modal: {
+    parent: {
+      esModuleURI: "moz-src:///browser/components/modal/ModalParent.sys.mjs",
+    },
+    child: {
+      esModuleURI: "moz-src:///browser/components/modal/ModalChild.sys.mjs",
+      events: {
+        pointerdown: { capture: true },
+        focus: { capture: true },
+        pageshow: {},
+        pagehide: {},
+        load: { capture: true, createActor: false },
+        scroll: { capture: true, createActor: false },
+        resize: { createActor: false },
+      },
+    },
+    messageManagerGroups: ["browsers"],
+    allFrames: true,
+    enablePreference: "browser.modal.enabled",
+    safeForUntrustedWebProcess: true,
+  },
+
   Megalist: {
     parent: {
       esModuleURI: "resource://gre/actors/MegalistParent.sys.mjs",

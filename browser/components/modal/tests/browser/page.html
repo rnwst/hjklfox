@@ -1,0 +1,17 @@
+<!doctype html>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<meta charset="utf-8">
+<title>Modal navigation test</title>
+<style>body { min-height: 5000px; } a { display: block; margin: 20px; }</style>
+<input id="editor" autofocus>
+<a id="first" href="#one">First link</a>
+<a id="second" href="#two">Second link</a>
+<input id="checkbox" type="checkbox">
+<script>
+window.keys = [];
+for (const type of ["keydown", "keypress", "keyup"]) {
+  addEventListener(type, event => window.keys.push(`${type}:${event.key}`), true);
+}
+</script>

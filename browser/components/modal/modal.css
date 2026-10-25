@@ -1,0 +1,20 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+@media not (forced-colors) {
+  :root[modal-mode="insert"] #nav-bar {
+    --modal-toolbar-background-color: color-mix(in srgb, var(--toolbar-background-color) 75%, var(--background-color-success));
+    background-color: var(--modal-toolbar-background-color);
+  }
+}
+
+#modal-mode-indicator {
+  position: absolute;
+  clip-path: inset(100%);
+  white-space: nowrap;
+}
+
+:root:not([modal-mode]) #modal-mode-indicator {
+  display: none;
+}

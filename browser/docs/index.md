@@ -11,6 +11,7 @@ BrowserUsageTelemetry
 FrontendCodeReviewBestPractices
 CommandLineParameters
 BrowserStartup
+ModalNavigation
 CategoryManagerIndirection
 DistributionIni
 components/customizableui/docs/index

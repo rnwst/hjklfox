@@ -1,0 +1,35 @@
+<!doctype html>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<meta charset="utf-8">
+<title>Modal native keyboard test</title>
+<style>
+  body { min-height: 5000px; }
+  button, a { display: block; margin: 16px; }
+  [hidden] { display: none; }
+  #unnamed { width: 30px; height: 25px; }
+</style>
+<button id="action"><span>Run action</span></button>
+<form id="form"><button id="submit" type="submit">Submit form</button></form>
+<button id="unnamed" type="button"></button>
+<button disabled>Disabled</button>
+<fieldset disabled><button>Disabled by fieldset</button></fieldset>
+<button aria-disabled="true">Unavailable</button>
+<button hidden>Hidden</button>
+<div inert><button>Inert</button></div>
+<a id="first" href="#one">First link</a>
+<a id="second" href="#two">Second link</a>
+<script>
+  document.body.dataset.clicks = "0";
+  document.body.dataset.submits = "0";
+  document.getElementById("action").addEventListener("click", event => {
+    document.body.dataset.clicks = String(Number(document.body.dataset.clicks) + 1);
+    document.body.dataset.trusted = String(event.isTrusted);
+    document.body.dataset.activation = String(navigator.userActivation.isActive);
+  });
+  document.getElementById("form").addEventListener("submit", event => {
+    event.preventDefault();
+    document.body.dataset.submits = String(Number(document.body.dataset.submits) + 1);
+  });
+</script>

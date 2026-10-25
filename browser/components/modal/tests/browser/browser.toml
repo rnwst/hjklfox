@@ -1,0 +1,10 @@
+[DEFAULT]
+support-files = ["page.html", "loading.sjs", "buttons.html"]
+prefs = ["browser.modal.enabled=true", "general.smoothScroll=false"]
+
+["browser_modal.js"]
+
+["browser_modal_buttons.js"]
+
+["browser_modal_native.js"]
+skip-if = ["os != 'linux'", "headless"]

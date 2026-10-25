@@ -744,6 +744,10 @@ var gBrowserInit = {
 
     Referrals.maybeLockPref();
 
+    window.gModalNavigation = ChromeUtils.importESModule(
+      "moz-src:///browser/components/modal/ModalNavigation.sys.mjs"
+    ).ModalNavigation.init(window);
+
     this.delayedStartupFinished = true;
     _resolveDelayedStartup();
     Services.obs.notifyObservers(window, "browser-delayed-startup-finished");

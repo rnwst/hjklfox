@@ -22,6 +22,10 @@
   pref("browser.hiddenWindowChromeURL", "chrome://browser/content/hiddenWindowMac.xhtml");
 #endif
 
+// Helix-style modal keyboard navigation.
+pref("browser.modal.enabled", true);
+pref("browser.modal.keybindings", "{}");
+
 // Set add-ons abuse report related prefs specific to Firefox Desktop.
 pref("extensions.abuseReport.enabled", true);
 

@@ -1,0 +1,37 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+@import url("chrome://global/skin/design-system/tokens-shared.css");
+@import url("chrome://global/skin/design-system/tokens-brand.css");
+
+.hint {
+  --modal-hint-background-color: var(--color-yellow-30);
+  --modal-hint-text-color: var(--color-gray-100);
+  --modal-hint-border-color: var(--modal-hint-text-color);
+  position: fixed;
+  pointer-events: none;
+  background-color: var(--modal-hint-background-color);
+  color: var(--modal-hint-text-color);
+  border: var(--border-width) solid var(--modal-hint-border-color);
+  border-radius: var(--border-radius-xsmall);
+  padding: var(--space-xxsmall) var(--space-xsmall);
+  font: bold 14px monospace;
+}
+
+@media (forced-colors) {
+  .hint {
+    --modal-hint-background-color: Mark;
+    --modal-hint-text-color: MarkText;
+  }
+}
+
+.hint[hidden] {
+  display: none;
+}
+
+.hint-target {
+  position: absolute;
+  clip-path: inset(100%);
+  white-space: nowrap;
+}
