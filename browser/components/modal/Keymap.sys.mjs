@@ -33,6 +33,12 @@ export const DEFAULT_BINDINGS = Object.freeze({
   "Space s": "urlbar.search",
 });
 
+export const ADDRESS_BINDINGS = Object.freeze({
+  "C-n": "address.next",
+  "C-p": "address.previous",
+  "C-Space": "address.engines",
+});
+
 export function keyToken(event) {
   if (
     event.isComposing ||

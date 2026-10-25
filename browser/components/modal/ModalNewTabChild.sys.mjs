@@ -2,11 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { Keymap } from "moz-src:///browser/components/modal/Keymap.sys.mjs";
+import {
+  ADDRESS_BINDINGS,
+  Keymap,
+} from "moz-src:///browser/components/modal/Keymap.sys.mjs";
 
 const PREFS = ["browser.modal.enabled", "browser.modal.keybindings"];
 const GROUPS = {
   address: ["urlbar"],
+  "address-input": ["address"],
   editing: ["mode"],
   scrolling: ["scroll"],
   navigation: ["tab", "history"],
@@ -47,7 +51,10 @@ export class ModalNewTabChild extends JSWindowActorChild {
       Services.prefs.getStringPref("browser.modal.keybindings", "{}")
     ).bindings;
     const commands = new Map();
-    for (const [keys, command] of Object.entries(bindings)) {
+    for (const [keys, command] of [
+      ...Object.entries(bindings),
+      ...Object.entries(ADDRESS_BINDINGS),
+    ]) {
       if (!commands.has(command)) {
         commands.set(command, []);
       }

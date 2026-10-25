@@ -4,7 +4,7 @@
 
 /* global gModalNavigation */
 
-const { DEFAULT_BINDINGS } = ChromeUtils.importESModule(
+const { DEFAULT_BINDINGS, ADDRESS_BINDINGS } = ChromeUtils.importESModule(
   "moz-src:///browser/components/modal/Keymap.sys.mjs"
 );
 
@@ -18,7 +18,11 @@ add_setup(async function setup() {
 });
 
 add_task(async function guide_covers_current_commands() {
-  const commands = [...new Set(Object.values(DEFAULT_BINDINGS))];
+  const bindings = [
+    ...Object.entries(DEFAULT_BINDINGS),
+    ...Object.entries(ADDRESS_BINDINGS),
+  ];
+  const commands = [...new Set(bindings.map(([, command]) => command))];
   const ids = commands.map(
     command => `modal-shortcut-${command.replaceAll(".", "-")}`
   );
@@ -36,7 +40,7 @@ add_task(async function guide_covers_current_commands() {
     "Startup opens the shortcut reference by default"
   );
   await BrowserTestUtils.withNewTab(homepage, async browser => {
-    await SpecialPowers.spawn(browser, [DEFAULT_BINDINGS], async bindings => {
+    await SpecialPowers.spawn(browser, [bindings], async entries => {
       const doc = content.document;
       await ContentTaskUtils.waitForCondition(() =>
         doc.getElementById("modal-shortcuts")
@@ -52,7 +56,13 @@ add_task(async function guide_covers_current_commands() {
         content.getComputedStyle(doc.querySelector("dl")).display,
         "block"
       );
-      Assert.equal(doc.querySelectorAll("main section h2").length, 6);
+      Assert.equal(doc.querySelectorAll("main section h2").length, 7);
+      Assert.ok(
+        doc.querySelector('[data-group="address-input"] [data-keys="C-n"]')
+      );
+      Assert.ok(
+        doc.querySelector('[data-group="address-input"] [data-keys="C-p"]')
+      );
       const descriptions = [...doc.querySelectorAll("dd")];
       const edge = doc.documentElement.dir === "rtl" ? "right" : "left";
       const alignedEdge = descriptions[0].getBoundingClientRect()[edge];
@@ -71,7 +81,7 @@ add_task(async function guide_covers_current_commands() {
           '[data-group="navigation"] [data-command="history.back"]'
         )
       );
-      for (const [keys, command] of Object.entries(bindings)) {
+      for (const [keys, command] of entries) {
         const row = doc.querySelector(`[data-command="${command}"]`);
         Assert.ok(row, `${command} is included`);
         Assert.ok(

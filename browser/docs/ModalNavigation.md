@@ -146,6 +146,8 @@ The default new-tab page shows a keyboard shortcut guide instead of Firefox's
 feed. Its key labels come from the active keymap, including custom bindings, and
 update when the keybinding preference changes. Disabling modal navigation hides
 the guide. Explicit Firefox Home or extension new-tab choices remain in effect.
+An address-mode section lists Ctrl-n/Ctrl-p suggestion selection and Ctrl-Space
+engine selection from the bindings used by the address-bar handler.
 The startup home page also defaults to `about:newtab` so the reference appears
 when opening the browser. Explicitly opening `about:blank` remains blank, and
 `browser.toolbars.bookmarks.visibility` defaults to `never`.

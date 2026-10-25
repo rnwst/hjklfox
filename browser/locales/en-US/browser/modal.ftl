@@ -25,6 +25,7 @@ modal-newtab-tip = Keys separated by spaces are pressed in sequence. Ctrl means 
 modal-newtab-customized = This guide follows your current bindings, including changes to browser.modal.keybindings in about:config.
 
 modal-newtab-group-address = Address-bar navigation
+modal-newtab-group-address-input = While editing the address bar
 modal-newtab-group-editing = Editing
 modal-newtab-group-scrolling = Scrolling
 modal-newtab-group-navigation = Tabs and history
@@ -64,3 +65,6 @@ modal-shortcut-urlbar-history = Search history
 modal-shortcut-urlbar-bookmarks = Search bookmarks
 modal-shortcut-urlbar-tabs = Find an open tab
 modal-shortcut-urlbar-search = Search the web
+modal-shortcut-address-next = Select the next suggestion
+modal-shortcut-address-previous = Select the previous suggestion
+modal-shortcut-address-engines = Open or leave the search-engine picker

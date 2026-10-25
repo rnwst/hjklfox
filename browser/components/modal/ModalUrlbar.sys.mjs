@@ -12,6 +12,10 @@ import {
   fuzzySqlPattern,
 } from "moz-src:///browser/components/modal/FuzzySearch.sys.mjs";
 import { ensureDefaultEngines } from "moz-src:///browser/components/modal/ModalEngines.sys.mjs";
+import {
+  ADDRESS_BINDINGS,
+  keyToken,
+} from "moz-src:///browser/components/modal/Keymap.sys.mjs";
 
 const lazy = XPCOMUtils.declareLazy({
   SearchService: "moz-src:///toolkit/components/search/SearchService.sys.mjs",
@@ -262,28 +266,15 @@ export class ModalUrlbar {
 
   handleKey(event) {
     const bar = this.window.gURLBar;
-    const key =
-      event.ctrlKey && !event.shiftKey ? event.key.toLowerCase() : event.key;
     if (!bar.contains(event.target) && !bar.focused) {
       return false;
     }
-    if (
-      event.ctrlKey &&
-      !event.altKey &&
-      !event.metaKey &&
-      !event.shiftKey &&
-      ["n", "p"].includes(key)
-    ) {
-      this.select(key === "p").catch(console.error);
+    const command = !event.shiftKey && ADDRESS_BINDINGS[keyToken(event)];
+    if (command === "address.next" || command === "address.previous") {
+      this.select(command === "address.previous").catch(console.error);
       return true;
     }
-    if (
-      event.ctrlKey &&
-      event.key === " " &&
-      !event.altKey &&
-      !event.metaKey &&
-      !event.shiftKey
-    ) {
+    if (command === "address.engines") {
       if (this.mode === "engines") {
         this.cancelEngines().catch(console.error);
       } else {
