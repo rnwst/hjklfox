@@ -2278,8 +2278,10 @@ export class Tabbrowser {
     let oldBrowser = oldTab.linkedBrowser;
     let newBrowser = newTab.linkedBrowser;
 
+    // Modal interaction modes belong to the window, not individual tabs.
+    const rememberChromeFocus = !this.documentGlobal.gModalNavigation?.enabled;
     this.documentGlobal.gURLBar.getBrowserState(oldBrowser).urlbarFocused =
-      this.documentGlobal.gURLBar.focused;
+      rememberChromeFocus && this.documentGlobal.gURLBar.focused;
 
     if (this.#asyncTabSwitching) {
       newBrowser._userTypedValueAtBeforeTabSwitch = newBrowser.userTypedValue;
@@ -2288,7 +2290,9 @@ export class Tabbrowser {
     if (this.isFindBarInitialized(oldTab)) {
       let findBar = this.getCachedFindBar(oldTab);
       oldTab._findBarFocused =
-        !findBar.hidden && findBar._findField.getAttribute("focused") == "true";
+        rememberChromeFocus &&
+        !findBar.hidden &&
+        findBar._findField.getAttribute("focused") == "true";
     }
 
     let activeEl = this.document.activeElement;

@@ -24,7 +24,8 @@ handoff is not a roadmap.
 - Insert mode uses a prominent theme-aware green toolbar fill. Address-bar mode uses
   native address-bar focus styling and never the green tint. Do not add a visible
   mode text badge.
-- Tab switching must not resurrect a tab's old insert mode. Completing a page
+- Tab switching must not resurrect a tab's old insert or address mode, including
+  Firefox's native per-tab address/find-field focus memories. Completing a page
   load must not undo a mode deliberately selected while loading.
 - Keep navigation toolbar and tab-strip controls unfocusable. Address and find
   fields allow intentional editing and are skipped by webpage Tab traversal.
@@ -65,7 +66,8 @@ or picker state; null means native URL-bar handling. Do not conflate them.
 
 Keep upstream edits concentrated in window startup (`browser-init.js`), actor
 registration (`DesktopActorRegistry.sys.mjs`), packaging, preferences
-(`firefox.js`), and the existing key/menu definitions. Avoid unrelated formatting,
+(`firefox.js`), tab-switch focus memory (`Tabbrowser.sys.mjs`), and the existing
+key/menu definitions. Avoid unrelated formatting,
 renames, or copies of upstream services: those increase future merge work.
 
 Important invariants established by regressions:

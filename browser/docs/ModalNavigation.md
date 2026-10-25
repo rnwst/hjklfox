@@ -9,9 +9,11 @@ fork choices. There is no command prompt.
 ## Modes and focus
 
 Each browser window owns one active interaction mode: command, insert, or address
-bar. Switching tabs from command mode or navigating to a new
-document returns to command mode; a previously focused editor does not restore
-insert mode. Page autofocus does not enter insert mode. Clicking or tabbing into
+bar. Switching between existing tabs returns to command mode; neither page
+editing nor address/find-field focus is restored from a tab. Opening a new tab
+with Ctrl-t can focus its address bar for a new navigation, but revisiting that
+tab does not restore address mode. Navigating to a new document also returns to
+command mode. Page autofocus does not enter insert mode. Clicking or tabbing into
 an editable field does. Pressing `i` enables insert mode and restores the last
 editor in the focused frame if it is still present.
 An explicitly focused control takes precedence over restoring the last editor.
@@ -208,7 +210,8 @@ usability with screen readers still require manual validation.
 The runtime integration points are the browser-window startup hook in
 `browser-init.js`, the actor declaration in `DesktopActorRegistry.sys.mjs`,
 component packaging, and the defaults in `firefox.js`. No native engine changes
-are required. Retired shortcuts/menu entries are also reflected in
+are required. `Tabbrowser.sys.mjs` suppresses per-tab chrome-focus memories while
+modal navigation is enabled. Retired shortcuts/menu entries are also reflected in
 `browser-sets.inc.xhtml` and `browser-menubar.inc.xhtml`. On upstream updates,
 pay particular attention to keyboard-event
 routing, focus APIs, anonymous-content overlays, and the existing tab/history

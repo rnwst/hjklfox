@@ -171,6 +171,11 @@ export class ModalNavigation {
       Services.prefs.getStringPref(KEYMAP_PREF, "{}")
     );
     if (this.enabled) {
+      for (const tab of this.window.gBrowser.tabs) {
+        this.window.gURLBar.getBrowserState(tab.linkedBrowser).urlbarFocused =
+          false;
+        tab._findBarFocused = false;
+      }
       this.excludeChromeEditorFromTabOrder(this.window.gURLBar.inputField);
       if (this.window.gFindBarInitialized) {
         this.excludeChromeEditorFromTabOrder(this.window.gFindBar._findField);

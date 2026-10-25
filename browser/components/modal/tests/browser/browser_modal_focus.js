@@ -265,3 +265,121 @@ add_task(async function disabling_modal_navigation_restores_native_focus() {
     Assert.equal(gModalNavigation.mode, "command");
   });
 });
+
+add_task(
+  async function returning_from_a_new_tab_does_not_restore_address_mode() {
+    await BrowserTestUtils.withNewTab(FOCUS_PAGE, async browser => {
+      const original = gBrowser.selectedTab;
+      browser.focus();
+      EventUtils.synthesizeKey(" ");
+      EventUtils.synthesizeKey("f");
+      await TestUtils.waitForCondition(() => gURLBar.focused);
+      EventUtils.sendString("unfinished destination");
+      const opened = BrowserTestUtils.waitForNewTab(gBrowser, "about:newtab");
+      EventUtils.synthesizeKey("t", { accelKey: true });
+      const other = await opened;
+      try {
+        await TestUtils.waitForCondition(
+          () => gBrowser.selectedTab === other && gURLBar.focused
+        );
+        await BrowserTestUtils.switchTab(gBrowser, original);
+        Assert.equal(
+          document.activeElement,
+          browser,
+          "Returning to the source tab focuses the page"
+        );
+        Assert.equal(
+          gModalNavigation.mode,
+          "command",
+          "Address mode is not restored from the tab"
+        );
+        EventUtils.synthesizeKey("j");
+        await SpecialPowers.spawn(browser, [], async () => {
+          await ContentTaskUtils.waitForCondition(() => content.scrollY > 0);
+        });
+        EventUtils.synthesizeKey(" ");
+        EventUtils.synthesizeKey("e");
+        await TestUtils.waitForCondition(() => gURLBar.focused);
+        Assert.equal(
+          gURLBar.value,
+          "unfinished destination",
+          "The query can still be resumed explicitly"
+        );
+        EventUtils.synthesizeKey("KEY_Escape");
+        await TestUtils.waitForCondition(
+          () => document.activeElement === browser
+        );
+        await BrowserTestUtils.switchTab(gBrowser, other);
+        Assert.equal(
+          document.activeElement,
+          other.linkedBrowser,
+          "Revisiting the new tab does not restore address focus either"
+        );
+        Assert.equal(gModalNavigation.mode, "command");
+      } finally {
+        BrowserTestUtils.removeTab(other);
+      }
+    });
+  }
+);
+
+add_task(async function tab_switches_do_not_restore_find_field_focus() {
+  await BrowserTestUtils.withNewTab(FOCUS_PAGE, async browser => {
+    const original = gBrowser.selectedTab;
+    const other = BrowserTestUtils.addTab(gBrowser, `${FOCUS_PAGE}?other`);
+    try {
+      browser.focus();
+      EventUtils.synthesizeKey("/");
+      const findbar = await gFindBarPromise;
+      await TestUtils.waitForCondition(
+        () => document.activeElement === findbar._findField
+      );
+      await findbar._startFindDeferred?.promise;
+      Assert.equal(gModalNavigation.mode, "insert");
+      await BrowserTestUtils.switchTab(gBrowser, other);
+      await BrowserTestUtils.switchTab(gBrowser, original);
+      Assert.equal(
+        document.activeElement,
+        browser,
+        "Returning to a tab does not focus its find field"
+      );
+      Assert.equal(gModalNavigation.mode, "command");
+      findbar.close(true);
+    } finally {
+      BrowserTestUtils.removeTab(other);
+    }
+  });
+});
+
+add_task(
+  async function enabling_modal_navigation_clears_native_focus_memories() {
+    await BrowserTestUtils.withNewTab(FOCUS_PAGE, async browser => {
+      const original = gBrowser.selectedTab;
+      const other = BrowserTestUtils.addTab(gBrowser, `${FOCUS_PAGE}?other`);
+      try {
+        await SpecialPowers.pushPrefEnv({
+          set: [["browser.modal.enabled", false]],
+        });
+        try {
+          gURLBar.focus();
+          await BrowserTestUtils.switchTab(gBrowser, other);
+          Assert.ok(
+            gURLBar.getBrowserState(browser).urlbarFocused,
+            "Native focus memory remains available with modal navigation disabled"
+          );
+        } finally {
+          await SpecialPowers.popPrefEnv();
+        }
+        await BrowserTestUtils.switchTab(gBrowser, original);
+        Assert.equal(
+          document.activeElement,
+          browser,
+          "Enabling modal navigation discards stale address-focus memory"
+        );
+        Assert.equal(gModalNavigation.mode, "command");
+      } finally {
+        BrowserTestUtils.removeTab(other);
+      }
+    });
+  }
+);

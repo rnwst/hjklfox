@@ -191,6 +191,49 @@ async function nativeKey(chord, releasedKey) {
   }
 }
 
+add_task(
+  { skip_if: () => !xdotool },
+  async function native_tabs_do_not_restore_address_mode() {
+    await BrowserTestUtils.withNewTab(NATIVE_PAGE, async browser => {
+      await TestUtils.waitForCondition(() =>
+        document.title.includes("Modal native keyboard test")
+      );
+      await focusNativeBrowser(browser);
+      const original = gBrowser.selectedTab;
+      await nativeKey("space", " ");
+      await nativeKey("e", "e");
+      await TestUtils.waitForCondition(() => gURLBar.focused);
+      const opened = BrowserTestUtils.waitForNewTab(gBrowser, "about:newtab");
+      await nativeKey("ctrl+t", "Control");
+      const other = await opened;
+      try {
+        await TestUtils.waitForCondition(
+          () => gBrowser.selectedTab === other && gURLBar.focused
+        );
+        const switched = BrowserTestUtils.waitForEvent(
+          gBrowser,
+          "TabSwitchDone"
+        );
+        await nativeKey("ctrl+shift+Tab", "Control");
+        await switched;
+        Assert.equal(gBrowser.selectedTab, original);
+        Assert.equal(
+          document.activeElement,
+          browser,
+          "Native tab switching restores page focus, not address focus"
+        );
+        Assert.equal(gModalNavigation.mode, "command");
+        await nativeKey("j", "j");
+        await SpecialPowers.spawn(browser, [], async () => {
+          await ContentTaskUtils.waitForCondition(() => content.scrollY > 0);
+        });
+      } finally {
+        BrowserTestUtils.removeTab(other);
+      }
+    });
+  }
+);
+
 add_task({ skip_if: () => !xdotool }, async function native_keyboard_routing() {
   await BrowserTestUtils.withNewTab(NATIVE_PAGE, async browser => {
     await TestUtils.waitForCondition(() =>
