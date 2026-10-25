@@ -1,3 +1,14 @@
+# Hjklfox project context
+
+Before changing this fork, read [PROJECT_INTENT.md](PROJECT_INTENT.md). It records
+the manifesto, current invariants, upstream integration workflow, and verified
+tooling. Implemented controls are documented in `browser/docs/ModalNavigation.md`.
+
+Keep fork-specific guidance in that file so the upstream instructions below stay
+easy to merge. On this managed NixOS host, follow its environment guidance rather
+than the generic distro-bootstrap advice below; the `moz` MCP server is not
+available here.
+
 # Global instructions
 Limit the amount of comments you put in the code to a strict minimum. You should almost never add comments, except sometimes on non-trivial code, function definitions if the arguments aren't self-explanatory, and class definitions and their members.
 
