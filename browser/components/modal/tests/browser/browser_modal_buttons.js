@@ -66,6 +66,128 @@ add_task(async function buttons_are_hint_targets() {
   });
 });
 
+add_task(async function unmatched_hint_keys_cancel_and_allow_reentry() {
+  for (const newTab of [false, true]) {
+    await BrowserTestUtils.withNewTab(BUTTON_PAGE, async browser => {
+      await showHints(browser, newTab);
+      EventUtils.synthesizeKey("z");
+      Assert.equal(
+        gModalNavigation.hints,
+        null,
+        "An unmatched hint key exits hint mode"
+      );
+      Assert.equal(gModalNavigation.mode, "command");
+      await SpecialPowers.spawn(browser, [], async () => {
+        const actor = content.windowGlobalChild.getActor("Modal");
+        await ContentTaskUtils.waitForCondition(() => !actor.overlay);
+        Assert.equal(
+          content.document.body.dataset.clicks,
+          "0",
+          "Cancelling does not activate a target"
+        );
+      });
+      const hints = await showHints(browser, newTab);
+      Assert.greater(
+        hints.length,
+        0,
+        "Hint mode can be entered again without Escape"
+      );
+      EventUtils.synthesizeKey("KEY_Escape");
+    });
+  }
+});
+
+add_task(async function partial_hint_labels_remain_correctable() {
+  await BrowserTestUtils.withNewTab(BUTTON_PAGE, async browser => {
+    await SpecialPowers.spawn(browser, [], () => {
+      const grid = content.document.createElement("div");
+      grid.style.cssText =
+        "position:fixed;top:8px;left:8px;display:grid;grid-template-columns:repeat(5,60px);gap:4px";
+      for (let i = 0; i < 20; i++) {
+        const link = content.document.createElement("a");
+        link.id = `target-${i}`;
+        link.href = `#target-${i}`;
+        link.textContent = `Link ${i}`;
+        grid.append(link);
+      }
+      content.document.body.replaceChildren(grid);
+    });
+    const hints = await showHints(browser);
+    Assert.equal(hints.length, 20);
+    Assert.ok(hints.every(hint => hint.label.length === 2));
+    const session = gModalNavigation.hints;
+    const prefix = hints[0].label[0];
+    EventUtils.synthesizeKey(prefix);
+    Assert.equal(
+      gModalNavigation.hints,
+      session,
+      "A valid partial label keeps hint mode active"
+    );
+    await SpecialPowers.spawn(browser, [prefix], async expected => {
+      const actor = content.windowGlobalChild.getActor("Modal");
+      await ContentTaskUtils.waitForCondition(() => actor.prefix === expected);
+      Assert.ok(
+        [...actor.overlay.root.querySelectorAll(".hint")]
+          .filter(label => !label.hidden)
+          .every(label => label.dataset.label.startsWith(expected))
+      );
+    });
+    EventUtils.synthesizeKey("KEY_Backspace");
+    Assert.equal(gModalNavigation.hints.prefix, "");
+    EventUtils.synthesizeKey(hints.at(-1).label[0]);
+    EventUtils.synthesizeKey("l");
+    Assert.equal(
+      gModalNavigation.hints,
+      null,
+      "An impossible combination of hint-alphabet letters also cancels"
+    );
+    await showHints(browser);
+    const loaded = BrowserTestUtils.waitForLocationChange(
+      gBrowser,
+      `${BUTTON_PAGE}#target-0`
+    );
+    EventUtils.sendString(gModalNavigation.hints.targets[0].label);
+    await loaded;
+    Assert.equal(
+      gModalNavigation.hints,
+      null,
+      "A valid full label still activates its target"
+    );
+  });
+});
+
+add_task(async function early_hint_input_waits_for_collection() {
+  for (const key of ["a", "z"]) {
+    await BrowserTestUtils.withNewTab(BUTTON_PAGE, async browser => {
+      browser.focus();
+      const collecting = gModalNavigation.startHints();
+      EventUtils.synthesizeKey(key);
+      Assert.ok(
+        gModalNavigation.hints,
+        "Input is buffered until hint labels are known"
+      );
+      await collecting;
+      Assert.equal(
+        gModalNavigation.hints,
+        null,
+        "Buffered input activates or cancels once collection finishes"
+      );
+      await SpecialPowers.spawn(
+        browser,
+        [key === "a" ? "1" : "0"],
+        async clicks => {
+          const actor = content.windowGlobalChild.getActor("Modal");
+          await ContentTaskUtils.waitForCondition(
+            () =>
+              !actor.overlay && content.document.body.dataset.clicks === clicks
+          );
+          Assert.equal(content.document.body.dataset.clicks, clicks);
+        }
+      );
+    });
+  }
+});
+
 add_task(async function new_tab_hints_use_native_link_activation() {
   for (const background of [true, false]) {
     await SpecialPowers.pushPrefEnv({

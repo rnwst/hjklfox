@@ -574,7 +574,13 @@ export class ModalNavigation {
   async startHints(newTab = false) {
     this.cancelHints();
     const generation = this.generation;
-    this.hints = { prefix: "", targets: [], actors: this.actors(), newTab };
+    this.hints = {
+      prefix: "",
+      targets: [],
+      actors: this.actors(),
+      newTab,
+      ready: false,
+    };
     const session = this.hints;
     for (const actor of session.actors) {
       actor.trackHints(this, generation);
@@ -626,6 +632,7 @@ export class ModalNavigation {
       }
       offset += counts[i];
     }
+    session.ready = true;
     if (!session.targets.length) {
       this.cancelHints();
     } else if (session.prefix) {
@@ -647,6 +654,11 @@ export class ModalNavigation {
         generation: this.generation,
         index: selected.index,
       });
+      this.cancelHints();
+    } else if (
+      session.ready &&
+      !session.targets.some(target => target.label.startsWith(session.prefix))
+    ) {
       this.cancelHints();
     } else {
       this.updateIndicator();

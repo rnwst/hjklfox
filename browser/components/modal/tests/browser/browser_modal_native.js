@@ -302,6 +302,16 @@ add_task({ skip_if: () => !xdotool }, async function native_keyboard_routing() {
         () => gModalNavigation.hints?.targets.length === 5
       );
       await nativeKey("o", "o");
+      Assert.equal(
+        gModalNavigation.hints,
+        null,
+        "An unmatched native hint key exits hint mode without Escape"
+      );
+      await nativeKey("g", "g");
+      await nativeKey("w", "w");
+      await TestUtils.waitForCondition(
+        () => gModalNavigation.hints?.targets.length === 5
+      );
       await nativeKey("ctrl+o", "Control");
       Assert.equal(
         gModalNavigation.hints,

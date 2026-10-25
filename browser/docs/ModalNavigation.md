@@ -169,12 +169,14 @@ Press `g` then `Shift+w` for new-tab hints instead. This mode labels links only
 and activates them with a native middle-click, respecting Firefox's
 foreground/background tab preference and the link's native behavior.
 Labels are unique across the tab, with up to 1,000 targets per frame. Escape
-cancels; Backspace corrects the entered label. Yellow labels retain their
-assignments through late loading, scrolling, resizing, and DOM changes, updating
-their positions in animation-frame batches. If hydration replaces an anchor,
-its label can follow the replacement with the same destination. An unloaded
-subframe loses only its own labels. New documents and tab switches cancel the
-session. Targets are checked again before activation. Collection currently scans
+cancels; Backspace corrects a still-valid prefix. A prefix that matches no hint
+automatically cancels hint mode, so the next keys work as normal commands.
+Yellow labels retain their assignments through late loading, scrolling,
+resizing, and DOM changes, updating their positions in animation-frame batches.
+If hydration replaces an anchor, its label can follow the replacement with the
+same destination. An unloaded subframe loses only its own labels. New documents
+and tab switches cancel the session. Targets are checked again before activation.
+Collection currently scans
 the document's anchors and buttons, not shadow trees or arbitrary interactive
 roles. Activation follows the target's native action in its current context.
 
