@@ -29,7 +29,7 @@ suggestions or the engine picker and returns focus to the page in command mode,
 without navigating. Unfinished text is retained for Space-e to resume; an empty
 cancelled query restores the current page's address.
 
-The navigation toolbar has a subtle green tint in insert mode, blended with the
+The navigation toolbar has a prominent green fill in insert mode, blended with the
 current theme. There is no visible mode text badge. A visually hidden localized
 status announcement identifies mode changes to assistive technology. In forced
 colors, the tint is omitted.

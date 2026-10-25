@@ -4,7 +4,7 @@
 
 @media not (forced-colors) {
   :root[modal-mode="insert"] #nav-bar {
-    --modal-toolbar-background-color: color-mix(in srgb, var(--toolbar-background-color) 75%, var(--background-color-success));
+    --modal-toolbar-background-color: color-mix(in srgb, var(--toolbar-background-color) 25%, var(--background-color-success));
     background-color: var(--modal-toolbar-background-color);
   }
 }

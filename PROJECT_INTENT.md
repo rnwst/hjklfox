@@ -21,7 +21,7 @@ handoff is not a roadmap.
 - Distinguish **command**, **insert**, and **address-bar** interaction modes.
   Command mode consumes unbound printable keys before websites see them. Explicit
   editing focus enters insert mode; unsolicited page autofocus must not.
-- Insert mode uses a subtle theme-aware green toolbar tint. Address-bar mode uses
+- Insert mode uses a prominent theme-aware green toolbar fill. Address-bar mode uses
   native address-bar focus styling and never the green tint. Do not add a visible
   mode text badge.
 - Tab switching must not resurrect a tab's old insert mode. Completing a page
