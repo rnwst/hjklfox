@@ -121,10 +121,7 @@ add_task(async function test_restore() {
     index: 0,
   });
 
-  let chanTitle = AppConstants.NIGHTLY_BUILD
-    ? "Firefox Nightly Resources"
-    : "Mozilla Firefox";
-  Assert.equal(bm.title, chanTitle, "Default bookmarks folder restored.");
+  Assert.equal(bm, null, "Restoring defaults leaves the bookmarks menu empty.");
 
   // Check preferences have been reverted.
   Assert.ok(!Services.prefs.getBoolPref(PREF_RESTORE_DEFAULT_BOOKMARKS));
@@ -158,10 +155,7 @@ add_task(async function test_restore_import() {
     index: 0,
   });
 
-  let chanTitle = AppConstants.NIGHTLY_BUILD
-    ? "Firefox Nightly Resources"
-    : "Mozilla Firefox";
-  Assert.equal(bm.title, chanTitle, "Default bookmarks folder restored.");
+  Assert.equal(bm, null, "Restoring defaults leaves the bookmarks menu empty.");
 
   // Check preferences have been reverted.
   Assert.ok(!Services.prefs.getBoolPref(PREF_RESTORE_DEFAULT_BOOKMARKS));

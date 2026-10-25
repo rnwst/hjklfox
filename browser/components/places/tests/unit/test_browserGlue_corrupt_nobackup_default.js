@@ -34,14 +34,11 @@ add_task(async function () {
   // The test will continue once import has finished.
   await promiseTopicObserved("places-browser-init-complete");
 
-  // Check that default bookmarks folder has been restored.
+  // Recovery without a backup uses the empty default bookmark seed.
   let bm = await PlacesUtils.bookmarks.fetch({
     parentGuid: PlacesUtils.bookmarks.menuGuid,
     index: 0,
   });
 
-  let chanTitle = AppConstants.NIGHTLY_BUILD
-    ? "Firefox Nightly Resources"
-    : "Mozilla Firefox";
-  Assert.equal(bm.title, chanTitle, "Default bookmarks folder restored.");
+  Assert.equal(bm, null, "Recovery does not add a default bookmarks folder.");
 });

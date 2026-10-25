@@ -151,6 +151,8 @@ engine selection from the bindings used by the address-bar handler.
 The startup home page also defaults to `about:newtab` so the reference appears
 when opening the browser. Explicitly opening `about:blank` remains blank, and
 `browser.toolbars.bookmarks.visibility` defaults to `never`.
+New profiles contain no bundled bookmarks or bookmark folders. Bookmarks already
+saved in an existing profile, including previously imported defaults, are retained.
 
 The sidebar, its opening shortcuts, and the tab-search button are removed from
 browser chrome. Saved vertical tab layouts return to horizontal tabs at startup.

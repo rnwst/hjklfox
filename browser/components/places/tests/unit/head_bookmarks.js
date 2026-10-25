@@ -34,7 +34,7 @@ updateAppInfo({
 });
 
 // Default bookmarks constant.
-const DEFAULT_BOOKMARKS_ON_MENU = 1;
+const DEFAULT_BOOKMARKS_ON_MENU = 0;
 
 var createCorruptDB = async function () {
   let dbPath = PathUtils.join(PathUtils.profileDir, "places.sqlite");
