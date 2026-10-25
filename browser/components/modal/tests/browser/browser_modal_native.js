@@ -60,7 +60,9 @@ add_task(
           await TestUtils.waitForCondition(
             () =>
               gURLBar.value === "nativepick" &&
-              gURLBar.view.getResultAtIndex(1)?.providerName === "ModalLocal"
+              [0, 1].every(index =>
+                urls.includes(gURLBar.view.getResultAtIndex(index)?.payload.url)
+              )
           );
           gURLBar.view.selectedRowIndex = 0;
           const first = gURLBar.view.selectedResult.payload.url;
@@ -205,6 +207,10 @@ add_task({ skip_if: () => !xdotool }, async function native_keyboard_routing() {
     };
     window.addEventListener("command", onCommand, true);
     try {
+      await nativeKey("ctrl+l", "Control");
+      Assert.equal(document.activeElement, browser, "Native Ctrl-l is retired");
+      await nativeKey("alt+d", "Alt");
+      Assert.equal(document.activeElement, browser, "Native Alt-d is retired");
       for (const [chord, fraction] of [
         ["ctrl+d", 0.5],
         ["ctrl+u", 0],

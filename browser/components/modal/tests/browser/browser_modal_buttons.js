@@ -136,3 +136,86 @@ add_task(async function modified_commands_stay_modal_during_hints() {
     );
   });
 });
+
+add_task(async function simplified_browser_chrome() {
+  Assert.equal(document.getElementById("focusURLBar"), null);
+  Assert.equal(document.getElementById("focusURLBar2"), null);
+  Assert.equal(
+    Services.prefs
+      .getDefaultBranch("")
+      .getBoolPref("browser.translations.automaticallyPopup"),
+    false
+  );
+  for (const id of [
+    "sidebar-container",
+    "sidebar-box",
+    "sidebar-button",
+    "alltabs-button",
+    "viewSidebarMenuMenu",
+  ]) {
+    const element = document.getElementById(id);
+    Assert.ok(
+      !element ||
+        element.hidden ||
+        getComputedStyle(element).display === "none",
+      `${id} is removed from the visible chrome`
+    );
+  }
+  await BrowserTestUtils.withNewTab(BUTTON_PAGE, async browser => {
+    browser.focus();
+    for (const modifiers of [{ ctrlKey: true }, { altKey: true }]) {
+      EventUtils.synthesizeKey(modifiers.ctrlKey ? "l" : "d", modifiers);
+      await SpecialPowers.spawn(browser, [], () => {});
+      Assert.equal(
+        document.activeElement,
+        browser,
+        "Retired shortcuts do not focus the URL bar"
+      );
+    }
+    EventUtils.synthesizeKey(" ");
+    EventUtils.synthesizeKey("f");
+    await TestUtils.waitForCondition(
+      () => document.activeElement === gURLBar.inputField
+    );
+    Assert.equal(gModalNavigation.urlbar.mode, "destinations");
+    EventUtils.synthesizeKey("KEY_Escape");
+    await TestUtils.waitForCondition(() => document.activeElement === browser);
+  });
+});
+
+add_task(async function saved_vertical_layout_returns_to_visible_tabs() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["sidebar.revamp", true],
+      ["sidebar.verticalTabs", true],
+    ],
+  });
+  let win;
+  try {
+    win = await BrowserTestUtils.openNewBrowserWindow();
+    await win.SidebarController.promiseInitialized;
+    await TestUtils.waitForCondition(
+      () => !Services.prefs.getBoolPref("sidebar.verticalTabs")
+    );
+    await win.SidebarController.waitUntilStable();
+    Assert.ok(
+      !win.gBrowser.tabContainer.verticalMode,
+      "A saved vertical layout becomes horizontal"
+    );
+    Assert.ok(
+      !win.SidebarController.isOpen,
+      "Restored sidebar content is closed"
+    );
+    Assert.greater(
+      win.gBrowser.tabContainer.getBoundingClientRect().width,
+      0,
+      "Removing the sidebar does not hide the tab strip"
+    );
+  } finally {
+    if (win) {
+      await BrowserTestUtils.closeWindow(win);
+    }
+    await SpecialPowers.popPrefEnv();
+    await SimpleTest.promiseFocus(window);
+  }
+});

@@ -25,6 +25,8 @@
 // Helix-style modal keyboard navigation.
 pref("browser.modal.enabled", true);
 pref("browser.modal.keybindings", "{}");
+pref("browser.newtabpage.enabled", false);
+pref("browser.translations.automaticallyPopup", false);
 
 // Set add-ons abuse report related prefs specific to Firefox Desktop.
 pref("extensions.abuseReport.enabled", true);
@@ -339,7 +341,7 @@ pref("browser.shell.setDefaultPDFHandler.attemptWaitTimeMs", 30000);
 // 0 = blank, 1 = home (browser.startup.homepage), 2 = last visited page, 3 = resume previous browser session
 // The behavior of option 3 is detailed at: http://wiki.mozilla.org/Session_Restore
 pref("browser.startup.page",                1);
-pref("browser.startup.homepage",            "about:home");
+pref("browser.startup.homepage",            "about:blank");
 pref("browser.startup.homepage.abouthome_cache.enabled", true);
 pref("browser.startup.homepage.abouthome_cache.loglevel", "Warn");
 
@@ -2346,10 +2348,9 @@ pref("sidebar.verticalTabs", false);
 pref("sidebar.verticalTabs.dragToPinPromo.dismissed", false);
 // One value per behavior, none shared across tab orientations. Vertical tabs:
 // "always-show", "expand-on-hover", "hide-sidebar". Horizontal tabs:
-// "hide-on-close" (default) and "hide-launcher" (switcher-only). The default
-// here is the vertical default; SidebarManager normalizes to the right value
-// for the current orientation.
-pref("sidebar.visibility", "always-show");
+// "hide-on-close" and "hide-launcher" (switcher-only). This fork defaults to
+// horizontal tabs with the launcher hidden.
+pref("sidebar.visibility", "hide-launcher");
 // Sidebar UI state is stored per-window via session restore. Use this pref
 // as a backup to restore the sidebar UI state when a user has PPB mode on
 // or has history cleared on browser close.
@@ -3165,7 +3166,7 @@ pref("browser.toolbars.keyboard_navigation", true);
 // "newtab": Show on the New Tab Page
 // "always": Always show
 // "never": Never show
-pref("browser.toolbars.bookmarks.visibility", "newtab");
+pref("browser.toolbars.bookmarks.visibility", "never");
 
 // Visibility of the "Show Other Bookmarks" menuitem in the
 // bookmarks toolbar contextmenu.

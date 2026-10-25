@@ -3,7 +3,8 @@
 This fork includes an experimental, Helix-oriented navigation component in
 `browser/components/modal/`. It is enabled by default. Set
 `browser.modal.enabled` to `false` in `about:config` to disable modal key
-interception. There is no command prompt.
+interception. The retired shortcuts and simplified browser chrome are separate
+fork choices. There is no command prompt.
 
 ## Modes and focus
 
@@ -60,6 +61,8 @@ Numeric prefixes apply to scrolling and tab switching, for example `5j` and
 physical keyboard positions. In command mode, matching modal bindings override
 Firefox's existing bindings, such as `Ctrl-u` for View Source. Insert mode keeps
 Firefox's native shortcuts.
+
+Alt-d and Ctrl-l no longer focus the address bar; use Space-f from command mode.
 
 The JSON string preference `browser.modal.keybindings` overrides defaults. For
 example:
@@ -123,6 +126,15 @@ Editable fields in internal pages use the same insert-mode transitions as web
 pages. Browser chrome text fields remain native inputs; Escape returns focus to
 the page and command mode after popups have been dismissed.
 
+New-tab content is disabled by default, the home page defaults to `about:blank`,
+and `browser.toolbars.bookmarks.visibility` defaults to `never`. These are defaults,
+not forced overrides of explicit user preferences.
+
+The sidebar, its opening shortcuts, and the tab-search button are removed from
+browser chrome. Saved vertical tab layouts return to horizontal tabs at startup.
+Automatic translation offers default to off; translation can still be requested
+manually or re-enabled in settings.
+
 Hints cover ordinary `a[href]` links and `<button>` elements, including
 cross-process frames. Disabled, aria-disabled, inert, and invisible targets are
 excluded. Activation rechecks current state and preserves native button clicks
@@ -160,7 +172,8 @@ usability with screen readers still require manual validation.
 The runtime integration points are the browser-window startup hook in
 `browser-init.js`, the actor declaration in `DesktopActorRegistry.sys.mjs`,
 component packaging, and the defaults in `firefox.js`. No native engine changes
-are required. On upstream updates,
+are required. Retired shortcuts/menu entries are also reflected in
+`browser-sets.inc.xhtml` and `browser-menubar.inc.xhtml`. On upstream updates,
 pay particular attention to keyboard-event
 routing, focus APIs, anonymous-content overlays, and the existing tab/history
 methods used by the dispatcher.

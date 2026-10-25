@@ -835,16 +835,54 @@ add_task(async function slash_search_and_chrome_escape() {
   });
 });
 
-add_task(async function nonvisual_mode_indicator() {
-  const announcement = document.getElementById("modal-mode-indicator");
+add_task(async function uncluttered_defaults() {
+  const defaults = Services.prefs.getDefaultBranch("");
+  Assert.equal(defaults.getBoolPref("browser.newtabpage.enabled"), false);
   Assert.equal(
-    getComputedStyle(announcement).clipPath,
-    "inset(100%)",
-    "Mode has no visible text badge"
+    defaults.getStringPref("browser.startup.homepage"),
+    "about:blank"
   );
   Assert.equal(
-    getComputedStyle(announcement).position,
-    "absolute",
-    "Announcement consumes no toolbar space"
+    defaults.getStringPref("browser.toolbars.bookmarks.visibility"),
+    "never"
   );
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.newtabpage.enabled", false],
+      ["browser.toolbars.bookmarks.visibility", "never"],
+    ],
+  });
+  try {
+    await BrowserTestUtils.withNewTab("about:newtab", async browser => {
+      await SpecialPowers.spawn(browser, [], () => {
+        Assert.equal(
+          content.document.body?.textContent.trim() || "",
+          "",
+          "New-tab page is blank"
+        );
+        Assert.equal(
+          content.document.querySelectorAll("input, button, a, iframe").length,
+          0,
+          "No new-tab controls or feed"
+        );
+      });
+      Assert.ok(
+        document.getElementById("PersonalToolbar").collapsed,
+        "Bookmarks toolbar starts hidden"
+      );
+      const announcement = document.getElementById("modal-mode-indicator");
+      Assert.equal(
+        getComputedStyle(announcement).clipPath,
+        "inset(100%)",
+        "Mode has no visible text badge"
+      );
+      Assert.equal(
+        getComputedStyle(announcement).position,
+        "absolute",
+        "Announcement consumes no toolbar space"
+      );
+    });
+  } finally {
+    await SpecialPowers.popPrefEnv();
+  }
 });

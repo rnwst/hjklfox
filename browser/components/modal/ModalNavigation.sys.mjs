@@ -7,6 +7,7 @@ import {
   keyToken,
   hintLabels,
 } from "moz-src:///browser/components/modal/Keymap.sys.mjs";
+import { configureSimplifiedChrome } from "moz-src:///browser/components/modal/SimplifiedChrome.sys.mjs";
 
 const PREF = "browser.modal.enabled";
 const KEYMAP_PREF = "browser.modal.keybindings";
@@ -33,6 +34,7 @@ export class ModalNavigation {
   }
 
   constructor(win) {
+    configureSimplifiedChrome(win);
     this.window = win;
     this.mode = "command";
     this.suppressed = new Set();

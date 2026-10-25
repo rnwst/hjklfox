@@ -10,6 +10,7 @@ MOZ_SRC_FILES += [
     "ModalNavigation.sys.mjs",
     "ModalParent.sys.mjs",
     "ModalUrlbar.sys.mjs",
+    "SimplifiedChrome.sys.mjs",
 ]
 
 JAR_MANIFESTS += ["jar.mn"]

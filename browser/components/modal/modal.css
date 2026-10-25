@@ -18,3 +18,13 @@
 :root:not([modal-mode]) #modal-mode-indicator {
   display: none;
 }
+
+#sidebar-container,
+#sidebar-box,
+#sidebar-splitter,
+#sidebar-launcher-splitter,
+#sidebar-button,
+#viewSidebarMenuMenu,
+#alltabs-button {
+  display: none !important;
+}
