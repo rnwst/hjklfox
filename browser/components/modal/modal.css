@@ -19,6 +19,18 @@
   display: none;
 }
 
+:root[modal-mode] #navigator-toolbox,
+:root[modal-mode] #navigator-toolbox *,
+:root[modal-mode] findbar,
+:root[modal-mode] findbar * {
+  -moz-user-focus: none !important;
+}
+
+:root[modal-mode] #urlbar .urlbar-input,
+:root[modal-mode] findbar:not([hidden]) .findbar-textbox {
+  -moz-user-focus: normal !important;
+}
+
 #sidebar-container,
 #sidebar-box,
 #sidebar-splitter,

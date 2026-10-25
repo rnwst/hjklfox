@@ -17,8 +17,8 @@ editor in the focused frame if it is still present.
 An explicitly focused control takes precedence over restoring the last editor.
 
 In command mode, unbound printable keys are swallowed before reaching page
-handlers. Unmatched modified shortcuts and ordinary Tab navigation remain
-available. In insert mode, page input works normally. Address-bar focus enters
+handlers. Unmatched modified shortcuts and ordinary Tab navigation within pages
+remain available. In insert mode, page input works normally. Address-bar focus enters
 its own mode, with normal text editing and the native blue focus border; it never
 applies the green insert-mode toolbar tint.
 
@@ -28,6 +28,13 @@ their native Escape handling first. In the address bar, one Escape closes
 suggestions or the engine picker and returns focus to the page in command mode,
 without navigating. Unfinished text is retained for Space-e to resume; an empty
 cancelled query restores the current page's address.
+
+Tab and Shift-Tab in the address bar keep focus and the query there; use Escape
+to return to page command mode. Tab in the page-find field returns to the page.
+Toolbar buttons, tab titles, and new-tab buttons cannot take focus through
+Tab, mouse clicks, or programmatic focus. The address and find fields remain
+available through their explicit commands or direct interaction, but are skipped
+by page Tab traversal. Native menus and dialogs retain their own input handling.
 
 The navigation toolbar has a prominent green fill in insert mode, blended with the
 current theme. There is no visible mode text badge. A visually hidden localized
@@ -130,8 +137,8 @@ settings; no parallel engine database is maintained.
 
 Content actors cover documents loaded in tab browsers, including internal pages.
 Editable fields in internal pages use the same insert-mode transitions as web
-pages. Browser chrome text fields remain native inputs; Escape returns focus to
-the page and command mode after popups have been dismissed.
+pages. The address bar and page-find field remain native inputs; Escape returns
+focus to the page and command mode after popups have been dismissed.
 
 The default new-tab page shows a keyboard shortcut guide instead of Firefox's
 feed. Its key labels come from the active keymap, including custom bindings, and

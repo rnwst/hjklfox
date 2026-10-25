@@ -914,13 +914,11 @@ add_task(async function slash_search_and_chrome_escape() {
     document.getElementById("nav-bar").appendChild(input);
     try {
       input.focus();
-      Assert.equal(gModalNavigation.mode, "insert");
-      EventUtils.synthesizeKey("KEY_Escape");
       Assert.equal(document.activeElement, browser);
       Assert.equal(
         gModalNavigation.mode,
         "command",
-        "Escape recovers from other browser text fields"
+        "Other toolbar text fields cannot take focus from the page"
       );
     } finally {
       input.remove();

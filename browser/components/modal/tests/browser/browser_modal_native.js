@@ -355,6 +355,23 @@ add_task({ skip_if: () => !xdotool }, async function native_keyboard_routing() {
         address,
         "Native Space e preserves the address"
       );
+      await nativeKey("Tab", "Tab");
+      Assert.equal(
+        document.activeElement,
+        gURLBar.inputField,
+        "Native Tab keeps address focus"
+      );
+      Assert.equal(
+        gModalNavigation.mode,
+        "address",
+        "Native Tab stays in address mode"
+      );
+      await nativeKey("shift+Tab", "Shift");
+      Assert.equal(
+        document.activeElement,
+        gURLBar.inputField,
+        "Native Shift-Tab keeps address focus"
+      );
       await nativeKey("Escape", "Escape");
       await TestUtils.waitForCondition(
         () => document.activeElement === browser

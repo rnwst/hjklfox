@@ -26,6 +26,10 @@ handoff is not a roadmap.
   mode text badge.
 - Tab switching must not resurrect a tab's old insert mode. Completing a page
   load must not undo a mode deliberately selected while loading.
+- Keep navigation toolbar and tab-strip controls unfocusable. Address and find
+  fields allow intentional editing and are skipped by webpage Tab traversal.
+  Tab and Shift-Tab stay in the address bar; Escape returns to page command mode.
+  Preserve webpage Tab navigation.
 - One Escape leaves address-bar editing, including its results/engine picker,
   without navigating. Keep the existing text available for editing; restore the
   current address when cancelling an empty query. Preserve native IME and

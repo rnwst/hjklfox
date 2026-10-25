@@ -44,6 +44,7 @@ export class ModalNavigation {
     this.hints = null;
     this.tabFocusPending = false;
     this.chromeEditing = false;
+    this.chromeTabIndexes = new WeakMap();
     this.observe = this.configure.bind(this);
     Services.prefs.addObserver(PREF, this.observe);
     Services.prefs.addObserver(KEYMAP_PREF, this.observe);
@@ -56,6 +57,7 @@ export class ModalNavigation {
       "unload",
       "popupshowing",
       "pointerdown",
+      "pointerup",
     ]) {
       const target = type.startsWith("key") ? win.windowRoot : win;
       target.addEventListener(type, this, true);
@@ -102,14 +104,93 @@ export class ModalNavigation {
       : "command";
   }
 
+  isChromeEditor(element) {
+    return (
+      element === this.window.gURLBar.inputField ||
+      element?.matches("findbar:not([hidden]) .findbar-textbox")
+    );
+  }
+
+  isNavigationChrome(element) {
+    for (
+      let node = element;
+      node;
+      node = node.parentElement || node.getRootNode()?.host
+    ) {
+      if (node.id === "navigator-toolbox" || node.localName === "findbar") {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  excludeChromeEditorFromTabOrder(element) {
+    if (!this.chromeTabIndexes.has(element)) {
+      this.chromeTabIndexes.set(element, element.getAttribute("tabindex"));
+    }
+    element.tabIndex = -1;
+  }
+
+  restoreChromeTabOrder() {
+    const editors = [
+      this.window.gURLBar.inputField,
+      ...this.window.document.querySelectorAll("findbar .findbar-textbox"),
+    ];
+    for (const element of editors) {
+      if (!this.chromeTabIndexes.has(element)) {
+        continue;
+      }
+      const tabindex = this.chromeTabIndexes.get(element);
+      if (tabindex === null) {
+        element.removeAttribute("tabindex");
+      } else {
+        element.setAttribute("tabindex", tabindex);
+      }
+    }
+    this.chromeTabIndexes = new WeakMap();
+  }
+
+  redirectChromeFocus() {
+    if (this.chromeEditing && this.mode === "address") {
+      this.window.gURLBar.inputField.focus();
+    } else if (
+      this.chromeEditing &&
+      this.window.gFindBarInitialized &&
+      !this.window.gFindBar.hidden
+    ) {
+      this.window.gFindBar._findField.focus();
+    } else {
+      this.chromeEditing = false;
+      this.setMode("command");
+      this.window.gBrowser.selectedBrowser.focus();
+    }
+  }
+
   configure() {
     this.keymap = Keymap.fromJSON(
       Services.prefs.getStringPref(KEYMAP_PREF, "{}")
     );
+    if (this.enabled) {
+      this.excludeChromeEditorFromTabOrder(this.window.gURLBar.inputField);
+      if (this.window.gFindBarInitialized) {
+        this.excludeChromeEditorFromTabOrder(this.window.gFindBar._findField);
+      }
+    } else {
+      this.restoreChromeTabOrder();
+    }
     if (this.enabled && !this.urlbar) {
       this.urlbar = new lazy.ModalUrlbar(this.window);
     }
     this.urlbar?.reset();
+    if (
+      this.enabled &&
+      this.isNavigationChrome(this.activeElement) &&
+      !this.isChromeEditor(this.activeElement)
+    ) {
+      this.chromeEditing = false;
+      this.redirectChromeFocus();
+      return;
+    }
     const mode = this.focusMode(this.activeElement);
     this.chromeEditing = mode !== "command";
     this.setMode(mode);
@@ -208,6 +289,31 @@ export class ModalNavigation {
     }
   }
 
+  handleChromeFocus(event, active) {
+    if (event.target.ownerDocument !== this.window.document) {
+      return;
+    }
+    if (this.isNavigationChrome(active) && !this.isChromeEditor(active)) {
+      event.stopImmediatePropagation();
+      this.redirectChromeFocus();
+      return;
+    }
+    if (this.isChromeEditor(active)) {
+      this.excludeChromeEditorFromTabOrder(active);
+    }
+    const mode = this.focusMode(active);
+    if (mode !== "command") {
+      this.chromeEditing = true;
+      this.setMode(mode);
+    } else if (this.chromeEditing) {
+      this.urlbar?.reset();
+      this.chromeEditing = false;
+      const tabFocusPending = this.tabFocusPending;
+      this.setMode("command");
+      this.tabFocusPending = tabFocusPending;
+    }
+  }
+
   handleEvent(event) {
     const win = this.window;
     if (event.type === "unload") {
@@ -220,13 +326,25 @@ export class ModalNavigation {
       return;
     }
     if (event.type === "popupshowing") {
-      if (event.target.matches("panel, menupopup")) {
+      if (event.target.matches('panel:not([role="tooltip"]), menupopup')) {
         this.resetKeys();
       }
       return;
     }
     if (event.type === "pointerdown") {
+      this.tabFocusPending = false;
       this.resetKeys();
+      return;
+    }
+    if (event.type === "pointerup") {
+      if (
+        this.isNavigationChrome(event.target) &&
+        [win.document.body, win.document.documentElement].includes(
+          this.activeElement
+        )
+      ) {
+        this.redirectChromeFocus();
+      }
       return;
     }
     if (event.type === "TabSelect") {
@@ -243,22 +361,10 @@ export class ModalNavigation {
       }
       return;
     }
-    const active = this.activeElement;
-    const inContent = active === win.gBrowser.selectedBrowser;
+    let active = this.activeElement;
+    let inContent = active === win.gBrowser.selectedBrowser;
     if (event.type === "focusin") {
-      if (event.target.ownerDocument === win.document) {
-        const mode = this.focusMode(active);
-        if (mode !== "command") {
-          this.chromeEditing = true;
-          this.setMode(mode);
-        } else if (this.chromeEditing) {
-          this.urlbar?.reset();
-          this.chromeEditing = false;
-          const tabFocusPending = this.tabFocusPending;
-          this.setMode("command");
-          this.tabFocusPending = tabFocusPending;
-        }
-      }
+      this.handleChromeFocus(event, active);
       return;
     }
     if (!event.isTrusted || event.isComposing) {
@@ -282,12 +388,30 @@ export class ModalNavigation {
       event.key === "Tab" && !event.ctrlKey && !event.altKey && !event.metaKey;
     if (
       win.document.querySelector(
-        'panel[panelopen="true"], menupopup[open="true"]'
+        'panel[panelopen="true"]:not([role="tooltip"]), menupopup[open="true"]'
       )
     ) {
       return;
     }
+    if ([win.document.body, win.document.documentElement].includes(active)) {
+      const tabFocusPending = this.tabFocusPending;
+      this.chromeEditing = false;
+      this.setMode("command");
+      this.tabFocusPending = tabFocusPending;
+      win.gBrowser.selectedBrowser.focus();
+      active = this.activeElement;
+      inContent = active === win.gBrowser.selectedBrowser;
+    }
     const inAddress = this.isAddressBarFocus(active);
+    if (this.tabFocusPending && !inContent && this.isChromeEditor(active)) {
+      if (inAddress) {
+        this.consume(event);
+        this.tabFocusPending = false;
+      } else {
+        this.escape(event, active, false);
+      }
+      return;
+    }
     if (inAddress && event.key === "Escape") {
       this.consume(event);
       this.exitAddressBar().catch(console.error);
@@ -562,6 +686,7 @@ export class ModalNavigation {
   }
 
   destroy() {
+    this.restoreChromeTabOrder();
     this.keyPopup.destroy();
     this.urlbar?.destroy();
     this.cancelHints();
@@ -576,6 +701,7 @@ export class ModalNavigation {
       "unload",
       "popupshowing",
       "pointerdown",
+      "pointerup",
     ]) {
       const target = type.startsWith("key")
         ? this.window.windowRoot
