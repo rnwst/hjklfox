@@ -26,11 +26,22 @@ const lazy = XPCOMUtils.declareLazy({
     "moz-src:///browser/components/urlbar/UrlbarProvidersManager.sys.mjs",
   UrlbarResult: "chrome://browser/content/urlbar/UrlbarResult.mjs",
   UrlbarShared: "chrome://browser/content/urlbar/UrlbarShared.mjs",
+  UrlbarSearchUtils:
+    "moz-src:///browser/components/urlbar/UrlbarSearchUtils.sys.mjs",
 });
 
 const states = new WeakMap();
 let registered = false;
 const LOCAL_MODES = new Set(["destinations", "history", "bookmarks", "tabs"]);
+const ENGINE_ALIAS_QUERY = /^\s*@(?:\s*|\S+)$/u;
+
+function isEngineAliasQuery(context) {
+  return (
+    context &&
+    !context.restrictInSearchMode() &&
+    ENGINE_ALIAS_QUERY.test(context.searchString)
+  );
+}
 
 function isAddress(value) {
   return /^(?:https?:\/\/|file:\/\/|about:|localhost(?::\d+)?(?:\/|$)|[^\s/@]+\.[^\s/@]+(?:[/:]|$))/i.test(
@@ -51,6 +62,7 @@ export class ModalUrlbar {
     this.window = win;
     this.mode = null;
     this.version = 0;
+    this.inputRevision = 0;
     states.set(win.gURLBar, this);
     if (!registered) {
       lazy.ProvidersManager.getInstanceForSap("urlbar").registerProvider(
@@ -61,9 +73,28 @@ export class ModalUrlbar {
     this.ready = ensureDefaultEngines();
     this.ready.catch(console.error);
     win.gURLBar.addEventListener("searchmodechanged", this);
+    win.gURLBar.inputField.addEventListener("input", this);
+    win.gURLBar.view.panel.addEventListener("mousedown", this);
   }
 
-  handleEvent() {
+  handleEvent(event) {
+    if (event.type === "input") {
+      this.inputRevision++;
+      if (this.mode === "engines" && !event.isComposing) {
+        this.completeEngineAlias().catch(console.error);
+      }
+      return;
+    }
+    if (event.type === "mousedown") {
+      if (
+        this.window.gModalNavigation?.enabled &&
+        event.button === 0 &&
+        event.target.closest(".urlbarView-row")
+      ) {
+        event.preventDefault();
+      }
+      return;
+    }
     const mode = this.window.gURLBar.searchMode;
     if (mode?.engineName && this.mode === "engines" && !mode.isPreview) {
       this.pickEngine(mode.engineName).catch(console.error);
@@ -235,6 +266,16 @@ export class ModalUrlbar {
     if (version !== this.version || !bar.focused) {
       return;
     }
+    if (ENGINE_ALIAS_QUERY.test(bar.value)) {
+      const context = await bar.lastQueryContextPromise;
+      if (version !== this.version || !bar.focused) {
+        return;
+      }
+      if (context?.searchString === bar.value && isEngineAliasQuery(context)) {
+        bar.startQuery({ allowAutofill: false });
+        return;
+      }
+    }
     this.savedQuery = bar.value;
     this.savedMode = this.mode;
     this.savedSearchMode = bar.searchMode;
@@ -249,19 +290,87 @@ export class ModalUrlbar {
 
   async cancelEngines() {
     const version = ++this.version;
+    const inputRevision = this.inputRevision;
     const bar = this.window.gURLBar;
+    const browser = this.window.gBrowser.selectedBrowser;
+    const value = bar.value;
     const query = this.savedQuery || "";
+    const searchMode = this.savedSearchMode;
     this.mode = this.savedMode;
+    this.savedQuery = null;
+    this.savedMode = null;
+    this.savedSearchMode = null;
+    await bar.setSearchMode(searchMode, browser);
+    if (
+      version !== this.version ||
+      browser !== this.window.gBrowser.selectedBrowser ||
+      !bar.focused
+    ) {
+      return;
+    }
+    if (this.inputRevision === inputRevision && bar.value === value) {
+      bar.search(query);
+    }
+    this.describe();
+  }
+
+  async completeEngineAlias() {
+    const bar = this.window.gURLBar;
+    const match = /^\s*(@\S+)\s+(.*)$/su.exec(bar.value);
+    if (!match) {
+      return;
+    }
+    const browser = this.window.gBrowser.selectedBrowser;
+    const version = this.version;
+    const inputRevision = this.inputRevision;
+    const engine = await lazy.UrlbarSearchUtils.engineForAlias(match[1]);
+    if (
+      !engine ||
+      version !== this.version ||
+      inputRevision !== this.inputRevision ||
+      this.mode !== "engines" ||
+      browser !== this.window.gBrowser.selectedBrowser ||
+      !bar.focused
+    ) {
+      return;
+    }
+    this.reset();
+    const acceptedVersion = this.version;
+    bar.controller.cancelQuery();
+    setQueryValue(bar, match[2]);
     await bar.setSearchMode(
-      this.savedSearchMode,
-      this.window.gBrowser.selectedBrowser
+      { engineName: engine.name, entry: "keywordoffer", isPreview: false },
+      browser
     );
-    if (version !== this.version || !bar.focused) {
+    if (
+      acceptedVersion === this.version &&
+      browser === this.window.gBrowser.selectedBrowser &&
+      bar.focused
+    ) {
+      bar.startQuery({ allowAutofill: false });
+    }
+  }
+
+  async clearEngine() {
+    const bar = this.window.gURLBar;
+    const browser = this.window.gBrowser.selectedBrowser;
+    const query = bar.value;
+    const inputRevision = this.inputRevision;
+    this.reset();
+    const version = this.version;
+    bar.controller.cancelQuery();
+    bar.view.close();
+    await bar.setSearchMode(null, browser);
+    if (
+      version !== this.version ||
+      browser !== this.window.gBrowser.selectedBrowser ||
+      !bar.focused ||
+      this.inputRevision !== inputRevision ||
+      bar.value !== query
+    ) {
       return;
     }
     bar.search(query);
-    this.savedQuery = null;
-    this.describe();
   }
 
   handleKey(event) {
@@ -277,6 +386,8 @@ export class ModalUrlbar {
     if (command === "address.engines") {
       if (this.mode === "engines") {
         this.cancelEngines().catch(console.error);
+      } else if (bar.searchMode?.engineName) {
+        this.clearEngine().catch(console.error);
       } else {
         this.showEngines().catch(console.error);
       }
@@ -338,6 +449,8 @@ export class ModalUrlbar {
     this.version++;
     this.mode = null;
     this.savedQuery = null;
+    this.savedMode = null;
+    this.savedSearchMode = null;
     this.resumeContext = null;
     this.describe();
   }
@@ -345,11 +458,13 @@ export class ModalUrlbar {
   destroy() {
     this.reset();
     this.window.gURLBar.removeEventListener("searchmodechanged", this);
+    this.window.gURLBar.inputField.removeEventListener("input", this);
+    this.window.gURLBar.view.panel.removeEventListener("mousedown", this);
     states.delete(this.window.gURLBar);
   }
 }
 
-/** Local-only, high-priority results while an explicit modal picker is active. */
+/** Local-only results for modal pickers and engine-alias selection. */
 class ModalLocalProvider extends UrlbarProvider {
   get name() {
     return "ModalLocal";
@@ -366,6 +481,7 @@ class ModalLocalProvider extends UrlbarProvider {
     return (
       !!state?.window.gModalNavigation?.enabled &&
       (state.mode === "engines" ||
+        isEngineAliasQuery(context) ||
         (LOCAL_MODES.has(state.mode) &&
           !context.searchString.trimStart().startsWith("@") &&
           !isAddress(context.searchString)))
@@ -384,27 +500,53 @@ class ModalLocalProvider extends UrlbarProvider {
       instance === this.queryInstance &&
       version === state.version &&
       mode === state.mode;
-    if (mode === "engines") {
+    if (mode === "engines" || isEngineAliasQuery(context)) {
+      await state.ready;
       const engines = await lazy.SearchService.getVisibleEngines();
+      const aliasEntries = await lazy.UrlbarSearchUtils.tokenAliasEngines();
+      const aliasesByName = new Map(
+        aliasEntries.map(({ engine, tokenAliases }) => [
+          engine.name,
+          tokenAliases,
+        ])
+      );
       if (!valid()) {
         return;
       }
-      for (const engine of engines) {
-        if (
-          fuzzyScore(context.searchString, [engine.name, ...engine.aliases]) ===
-          null
-        ) {
-          continue;
+      const filter = context.searchString.trim().toLocaleLowerCase();
+      const matches = engines
+        .map(engine => ({
+          engine,
+          aliases: aliasesByName.get(engine.name) || [],
+        }))
+        .filter(({ engine, aliases }) =>
+          filter.startsWith("@")
+            ? filter === "@" || aliases.some(alias => alias.startsWith(filter))
+            : fuzzyScore(filter, [engine.name, ...aliases]) !== null
+        )
+        .sort(
+          (a, b) =>
+            Number(b.aliases.includes(filter)) -
+            Number(a.aliases.includes(filter))
+        );
+      for (const { engine, aliases } of matches) {
+        const icon =
+          (await UrlbarUtils.getEngineIconUrl(engine, controller)) ||
+          "chrome://browser/skin/search-engine-placeholder@2x.png";
+        if (!valid()) {
+          return;
         }
         add(
           this,
           new lazy.UrlbarResult({
             type: lazy.UrlbarShared.RESULT_TYPE.SEARCH,
             source: lazy.UrlbarShared.RESULT_SOURCE.SEARCH,
+            hideRowLabel: true,
             payload: {
               engine: engine.name,
-              keyword:
-                engine.aliases.find(alias => alias.startsWith("@")) || "",
+              keyword: aliases[0] || "",
+              keywords: aliases.join(", "),
+              icon,
               query: "",
               providesSearchMode: true,
             },

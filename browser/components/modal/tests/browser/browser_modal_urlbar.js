@@ -188,15 +188,23 @@ add_task(async function aliases_and_engine_picker() {
       "Switching engines preserves the query"
     );
     EventUtils.synthesizeKey(" ", { ctrlKey: true });
+    await TestUtils.waitForCondition(() => !gURLBar.searchMode);
+    Assert.equal(
+      gURLBar.value,
+      "astrophysics",
+      "Clearing the selected engine keeps the query"
+    );
+    Assert.equal(gModalNavigation.urlbar.mode, null);
+    EventUtils.synthesizeKey(" ", { ctrlKey: true });
     await TestUtils.waitForCondition(
       () => gModalNavigation.urlbar.mode === "engines"
     );
     EventUtils.synthesizeKey("KEY_Escape");
     await TestUtils.waitForCondition(() => gURLBar.value === "astrophysics");
     Assert.equal(
-      gURLBar.searchMode.engineName,
-      "Perplexity",
-      "Escape restores the previous engine"
+      gURLBar.searchMode,
+      null,
+      "Escape restores the query without a selected engine"
     );
     await TestUtils.waitForCondition(
       () => document.activeElement === gBrowser.selectedBrowser
@@ -213,6 +221,352 @@ add_task(async function aliases_and_engine_picker() {
       "Restoring the query also restores native URL-bar metadata"
     );
   });
+});
+
+function engineRows() {
+  return Array.from(
+    { length: UrlbarTestUtils.getResultCount(window) },
+    (_, index) => {
+      const row = UrlbarTestUtils.getRowAt(window, index);
+      const result = row.result;
+      Assert.equal(
+        result.providerName,
+        "ModalLocal",
+        "One provider supplies both engine pickers"
+      );
+      Assert.ok(
+        result.hideRowLabel && !row.hasAttribute("label"),
+        "Engine choices have no suggestions heading"
+      );
+      Assert.ok(result.payload.icon, "Engine choices have an engine icon");
+      return {
+        engine: result.payload.engine,
+        aliases: result.payload.keywords,
+        icon: result.payload.icon,
+      };
+    }
+  );
+}
+
+add_task(async function cancelling_an_engine_allows_reselection_and_search() {
+  const original = await SearchService.getDefault();
+  const engine = await SearchService.addUserEngine({
+    name: "Cancellation Search",
+    url: `${URL}?search={searchTerms}`,
+  });
+  const query = "after cancellation";
+  const destination = engine.getSubmission(query).uri.spec;
+  try {
+    await SearchService.setDefault(engine, SearchService.CHANGE_REASON.UNKNOWN);
+    await BrowserTestUtils.withNewTab("about:blank", async browser => {
+      await openMode("f", "destinations");
+      const duckduckgo = await SearchService.getEngineByAlias("@d");
+      for (let i = 0; i < 2; i++) {
+        await UrlbarTestUtils.promiseAutocompleteResultPopup({
+          window,
+          value: "@d ",
+        });
+        await TestUtils.waitForCondition(
+          () =>
+            gURLBar.searchMode?.engineName === duckduckgo.name &&
+            !gURLBar.searchMode.isPreview
+        );
+        EventUtils.synthesizeKey(" ", { ctrlKey: true });
+        await TestUtils.waitForCondition(() => !gURLBar.searchMode);
+        Assert.notEqual(
+          gModalNavigation.urlbar.mode,
+          "engines",
+          "Clearing a selected engine does not leave the engine filter active"
+        );
+        Assert.equal(document.activeElement, gURLBar.inputField);
+      }
+      await UrlbarTestUtils.promiseAutocompleteResultPopup({
+        window,
+        value: query,
+      });
+      const loaded = BrowserTestUtils.browserLoaded(
+        browser,
+        false,
+        destination
+      );
+      EventUtils.synthesizeKey("KEY_Enter");
+      await loaded;
+      Assert.equal(
+        browser.currentURI.spec,
+        destination,
+        "Enter still performs a normal search after cancellation"
+      );
+    });
+  } finally {
+    await SearchService.setDefault(
+      original,
+      SearchService.CHANGE_REASON.UNKNOWN
+    );
+    await SearchService.removeEngine(engine);
+    await PlacesUtils.history.remove(destination);
+  }
+});
+
+add_task(async function aliases_complete_inside_the_explicit_engine_picker() {
+  const engine = await SearchService.getEngineByAlias("@d");
+  for (const pasted of [false, true]) {
+    await BrowserTestUtils.withNewTab(URL, async browser => {
+      browser.focus();
+      await openMode("e", null);
+      EventUtils.synthesizeKey(" ", { ctrlKey: true });
+      await TestUtils.waitForCondition(
+        () => gModalNavigation.urlbar.mode === "engines" && gURLBar.value === ""
+      );
+      const query = pasted ? "pasted query" : "typed query";
+      if (pasted) {
+        gURLBar.value = `@d ${query}`;
+        UrlbarTestUtils.fireInputEvent(window);
+      } else {
+        EventUtils.sendString("@d ");
+      }
+      await TestUtils.waitForCondition(
+        () =>
+          gURLBar.searchMode?.engineName === engine.name &&
+          !gURLBar.searchMode.isPreview
+      );
+      Assert.equal(
+        gModalNavigation.urlbar.mode,
+        null,
+        "Completing the alias leaves the engine filter"
+      );
+      Assert.equal(
+        gURLBar.value,
+        pasted ? query : "",
+        "The alias becomes a query, not the previous page address"
+      );
+      Assert.equal(document.activeElement, gURLBar.inputField);
+      if (!pasted) {
+        EventUtils.sendString(query);
+      }
+      await UrlbarTestUtils.promiseSearchComplete(window);
+      const submitted = BrowserTestUtils.waitForDocLoadAndStopIt(
+        engine.getSubmission(query).uri.spec,
+        browser
+      );
+      EventUtils.synthesizeKey("KEY_Enter");
+      await submitted;
+      Assert.ok(
+        true,
+        "Enter submits the query to DuckDuckGo after completing a picker alias"
+      );
+    });
+  }
+});
+
+add_task(async function engine_cancellation_does_not_overwrite_new_input() {
+  await BrowserTestUtils.withNewTab("about:blank", async () => {
+    await openMode("f", "destinations");
+    await UrlbarTestUtils.promiseAutocompleteResultPopup({
+      window,
+      value: "old query",
+    });
+    EventUtils.synthesizeKey(" ", { ctrlKey: true });
+    await TestUtils.waitForCondition(
+      () => gModalNavigation.urlbar.mode === "engines"
+    );
+    await UrlbarTestUtils.promiseSearchComplete(window);
+    const original = gURLBar.setSearchMode;
+    const deferred = Promise.withResolvers();
+    let block = true;
+    let waiting = false;
+    gURLBar.setSearchMode = async function (...args) {
+      const hold = block && args[0] === null;
+      if (hold) {
+        block = false;
+      }
+      const result = await original.apply(this, args);
+      if (hold) {
+        waiting = true;
+        await deferred.promise;
+      }
+      return result;
+    };
+    let cancelling;
+    try {
+      cancelling = gModalNavigation.urlbar.cancelEngines();
+      await TestUtils.waitForCondition(() => waiting);
+      await UrlbarTestUtils.promiseAutocompleteResultPopup({
+        window,
+        value: "@d ",
+      });
+      const engine = await SearchService.getEngineByAlias("@d");
+      await TestUtils.waitForCondition(
+        () => gURLBar.searchMode?.engineName === engine.name
+      );
+      deferred.resolve();
+      await cancelling;
+      Assert.equal(
+        gURLBar.value,
+        "",
+        "A delayed cancellation does not restore the obsolete query"
+      );
+      Assert.equal(
+        gURLBar.searchMode.engineName,
+        engine.name,
+        "The newly selected engine remains active"
+      );
+    } finally {
+      deferred.resolve();
+      gURLBar.setSearchMode = original;
+      await cancelling;
+    }
+  });
+});
+
+add_task(async function at_and_control_space_share_engine_choices() {
+  await BrowserTestUtils.withNewTab("about:blank", async browser => {
+    gURLBar.focus();
+    await UrlbarTestUtils.promiseAutocompleteResultPopup({
+      window,
+      value: "@",
+    });
+    const aliases = engineRows();
+    for (const alias of ["@g", "@s", "@e"]) {
+      const engine = await SearchService.getEngineByAlias(alias);
+      Assert.ok(
+        aliases.some(
+          row =>
+            row.engine === engine.name &&
+            row.aliases.split(", ").includes(alias)
+        ),
+        `${alias} is available in the shared picker`
+      );
+    }
+    const google = await SearchService.getEngineByAlias("@g");
+    const googleRow = UrlbarTestUtils.getRowAt(
+      window,
+      aliases.findIndex(row => row.engine === google.name)
+    );
+    await TestUtils.waitForCondition(
+      () =>
+        googleRow.querySelector(".urlbarView-title").textContent.includes("@g"),
+      "Aliases are shown in the native result title"
+    );
+    const previousQuery = gURLBar.lastQueryContextPromise;
+    EventUtils.synthesizeKey(" ", { ctrlKey: true });
+    await TestUtils.waitForCondition(
+      () => gURLBar.lastQueryContextPromise !== previousQuery
+    );
+    await UrlbarTestUtils.promiseSearchComplete(window);
+    Assert.equal(
+      gURLBar.value,
+      "@",
+      "Ctrl-Space does not replace an active alias picker"
+    );
+    Assert.deepEqual(engineRows(), aliases);
+    await UrlbarTestUtils.promiseAutocompleteResultPopup({
+      window,
+      value: "@ ",
+    });
+    Assert.deepEqual(
+      engineRows(),
+      aliases,
+      "Whitespace after the bare @ marker does not change picker implementations"
+    );
+    EventUtils.synthesizeKey("KEY_Escape");
+    await TestUtils.waitForCondition(() => document.activeElement === browser);
+
+    await openMode("f", "destinations");
+    await UrlbarTestUtils.promiseAutocompleteResultPopup({
+      window,
+      value: "preserved query",
+    });
+    EventUtils.synthesizeKey(" ", { ctrlKey: true });
+    await TestUtils.waitForCondition(
+      () => gModalNavigation.urlbar.mode === "engines"
+    );
+    await UrlbarTestUtils.promiseSearchComplete(window);
+    Assert.deepEqual(
+      engineRows(),
+      aliases,
+      "Ctrl-Space and @ show the same engines, aliases, and icons"
+    );
+    EventUtils.synthesizeKey("KEY_Escape");
+    await TestUtils.waitForCondition(() => document.activeElement === browser);
+    Assert.equal(gURLBar.value, "preserved query");
+  });
+});
+
+add_task(async function alias_picker_selects_without_searching_the_at_sign() {
+  await BrowserTestUtils.withNewTab("about:blank", async browser => {
+    for (const alias of ["@s", "@e"]) {
+      await openMode("f", "destinations");
+      await UrlbarTestUtils.promiseAutocompleteResultPopup({
+        window,
+        value: alias,
+      });
+      const engine = await SearchService.getEngineByAlias(alias);
+      Assert.equal(
+        gURLBar.view.getResultAtIndex(0).payload.engine,
+        engine.name
+      );
+      if (alias === "@e") {
+        EventUtils.synthesizeMouseAtCenter(
+          UrlbarTestUtils.getRowAt(window, 0),
+          {}
+        );
+      } else {
+        EventUtils.synthesizeKey("KEY_Enter");
+      }
+      await TestUtils.waitForCondition(
+        () => gURLBar.searchMode?.engineName === engine.name
+      );
+      Assert.equal(
+        gURLBar.value,
+        "",
+        "Selecting an alias starts an empty engine query"
+      );
+      Assert.equal(
+        browser.currentURI.spec,
+        "about:blank",
+        "Engine selection does not navigate"
+      );
+      EventUtils.synthesizeKey("KEY_Escape");
+      await TestUtils.waitForCondition(
+        () => document.activeElement === browser
+      );
+    }
+  });
+});
+
+add_task(async function picker_can_select_an_engine_without_an_alias() {
+  const custom = await SearchService.addUserEngine({
+    name: "Nebula Unaliased",
+    url: "https://example.com/search?q={searchTerms}",
+  });
+  try {
+    await BrowserTestUtils.withNewTab("about:blank", async () => {
+      await openMode("f", "destinations");
+      await UrlbarTestUtils.promiseAutocompleteResultPopup({
+        window,
+        value: "keep this query",
+      });
+      EventUtils.synthesizeKey(" ", { ctrlKey: true });
+      await TestUtils.waitForCondition(
+        () => gModalNavigation.urlbar.mode === "engines"
+      );
+      await UrlbarTestUtils.promiseAutocompleteResultPopup({
+        window,
+        value: "Nebula Unaliased",
+      });
+      Assert.equal(engineRows()[0].engine, custom.name);
+      EventUtils.synthesizeMouseAtCenter(
+        UrlbarTestUtils.getRowAt(window, 0),
+        {}
+      );
+      await TestUtils.waitForCondition(
+        () => gURLBar.searchMode?.engineName === custom.name
+      );
+      Assert.equal(gURLBar.value, "keep this query");
+    });
+  } finally {
+    await SearchService.removeEngine(custom);
+  }
 });
 
 add_task(async function fuzzy_tab_switching() {
@@ -262,6 +616,9 @@ add_task(async function custom_engine_and_web_mode() {
         window,
         value: "preserved query",
       });
+      EventUtils.synthesizeKey(" ", { ctrlKey: true });
+      await TestUtils.waitForCondition(() => !gURLBar.searchMode);
+      Assert.equal(gURLBar.value, "preserved query");
       EventUtils.synthesizeKey(" ", { ctrlKey: true });
       await TestUtils.waitForCondition(
         () => gModalNavigation.urlbar.mode === "engines"

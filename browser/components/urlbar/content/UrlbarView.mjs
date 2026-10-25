@@ -3739,7 +3739,7 @@ export class UrlbarView {
           },
         });
       } else if (
-        result.providerName == "UrlbarProviderTokenAliasEngines" &&
+        result.payload.keywords &&
         UrlbarPrefs.getScotchBonnetPref("searchRestrictKeywords.featureGate")
       ) {
         this.#l10nCache.setElementL10n(titleNode, {

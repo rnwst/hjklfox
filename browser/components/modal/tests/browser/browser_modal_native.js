@@ -7,6 +7,9 @@
 const { Subprocess } = ChromeUtils.importESModule(
   "resource://gre/modules/Subprocess.sys.mjs"
 );
+const { SearchService } = ChromeUtils.importESModule(
+  "moz-src:///toolkit/components/search/SearchService.sys.mjs"
+);
 const NATIVE_PAGE =
   "https://example.com/browser/browser/components/modal/tests/browser/buttons.html";
 let xdotool;
@@ -127,6 +130,41 @@ add_task(
             "command",
             "One native Escape leaves address editing"
           );
+          await nativeKey("space", " ");
+          await nativeKey("f", "f");
+          await TestUtils.waitForCondition(() => gURLBar.focused);
+          await xdo("type", "--clearmodifiers", "--delay", "1", "@");
+          await TestUtils.waitForCondition(
+            () =>
+              gURLBar.value === "@" &&
+              gURLBar.view.getResultAtIndex(0)?.payload.providesSearchMode &&
+              gURLBar.view.getResultAtIndex(1)?.hideRowLabel
+          );
+          await gURLBar.lastQueryContextPromise;
+          const firstEngine = gURLBar.view.getResultAtIndex(0).payload.engine;
+          const previousQuery = gURLBar.lastQueryContextPromise;
+          await nativeKey("ctrl+space", "Control");
+          await TestUtils.waitForCondition(
+            () => gURLBar.lastQueryContextPromise !== previousQuery
+          );
+          await gURLBar.lastQueryContextPromise;
+          Assert.equal(
+            gURLBar.value,
+            "@",
+            "Native Ctrl-Space keeps an active alias picker"
+          );
+          const engineResult = gURLBar.view.getResultAtIndex(0);
+          Assert.equal(engineResult.payload.engine, firstEngine);
+          Assert.ok(
+            engineResult.hideRowLabel &&
+              engineResult.payload.icon &&
+              engineResult.payload.keywords,
+            "Both native entry points use compact engine choices with aliases and icons"
+          );
+          await nativeKey("Escape", "Escape");
+          await TestUtils.waitForCondition(
+            () => document.activeElement === browser
+          );
         } finally {
           window.removeEventListener("command", onCommand, true);
         }
@@ -230,6 +268,119 @@ add_task(
       } finally {
         BrowserTestUtils.removeTab(other);
       }
+    });
+  }
+);
+
+add_task(
+  { skip_if: () => !xdotool },
+  async function native_engine_cancellation_recovers_search() {
+    await gModalNavigation.urlbar.ready;
+    const original = await SearchService.getDefault();
+    const local = await SearchService.addUserEngine({
+      name: "Native Cancellation Search",
+      url: `${NATIVE_PAGE}?search={searchTerms}`,
+    });
+    const query = "native cancellation";
+    const destination = local.getSubmission(query).uri.spec;
+    try {
+      await SearchService.setDefault(
+        local,
+        SearchService.CHANGE_REASON.UNKNOWN
+      );
+      await BrowserTestUtils.withNewTab(NATIVE_PAGE, async browser => {
+        await TestUtils.waitForCondition(() =>
+          document.title.includes("Modal native keyboard test")
+        );
+        await focusNativeBrowser(browser);
+        await nativeKey("space", " ");
+        await nativeKey("f", "f");
+        await TestUtils.waitForCondition(() => gURLBar.focused);
+        const engine = await SearchService.getEngineByAlias("@d");
+        for (let i = 0; i < 2; i++) {
+          await xdo("type", "--clearmodifiers", "--delay", "1", "@d ");
+          await TestUtils.waitForCondition(
+            () =>
+              gURLBar.searchMode?.engineName === engine.name &&
+              !gURLBar.searchMode.isPreview
+          );
+          await nativeKey("ctrl+space", "Control");
+          await TestUtils.waitForCondition(() => !gURLBar.searchMode);
+          Assert.equal(gModalNavigation.urlbar.mode, null);
+          Assert.equal(
+            document.activeElement,
+            gURLBar.inputField,
+            "Cancelling the engine keeps address focus"
+          );
+          Assert.equal(gURLBar.value, "");
+        }
+        await xdo("type", "--clearmodifiers", "--delay", "1", query);
+        await TestUtils.waitForCondition(() => gURLBar.value === query);
+        const loaded = BrowserTestUtils.browserLoaded(
+          browser,
+          false,
+          destination
+        );
+        await nativeKey("Return", "Enter");
+        await loaded;
+        Assert.equal(
+          browser.currentURI.spec,
+          destination,
+          "A native Enter searches normally after cancelling and reselecting an engine"
+        );
+      });
+    } finally {
+      await SearchService.setDefault(
+        original,
+        SearchService.CHANGE_REASON.UNKNOWN
+      );
+      await SearchService.removeEngine(local);
+      await PlacesUtils.history.remove(destination);
+    }
+  }
+);
+
+add_task(
+  { skip_if: () => !xdotool },
+  async function native_alias_completion_inside_engine_picker() {
+    await gModalNavigation.urlbar.ready;
+    await BrowserTestUtils.withNewTab(NATIVE_PAGE, async browser => {
+      await TestUtils.waitForCondition(() =>
+        document.title.includes("Modal native keyboard test")
+      );
+      await focusNativeBrowser(browser);
+      await nativeKey("space", " ");
+      await nativeKey("e", "e");
+      await TestUtils.waitForCondition(() => gURLBar.focused);
+      await nativeKey("ctrl+space", "Control");
+      await TestUtils.waitForCondition(
+        () => gModalNavigation.urlbar.mode === "engines" && gURLBar.value === ""
+      );
+      const query = "native picker query";
+      const engine = await SearchService.getEngineByAlias("@d");
+      await xdo("type", "--clearmodifiers", "--delay", "1", `@d ${query}`);
+      await TestUtils.waitForCondition(
+        () =>
+          gURLBar.searchMode?.engineName === engine.name &&
+          !gURLBar.searchMode.isPreview &&
+          gURLBar.value === query
+      );
+      Assert.equal(
+        gModalNavigation.urlbar.mode,
+        null,
+        "Native alias completion exits engine filtering"
+      );
+      Assert.equal(document.activeElement, gURLBar.inputField);
+      const submitted = BrowserTestUtils.waitForDocLoadAndStopIt(
+        engine.getSubmission(query).uri.spec,
+        browser
+      );
+      await nativeKey("Return", "Enter");
+      await submitted;
+      Assert.ok(
+        true,
+        "Native Enter submits the query after Space e, Ctrl-Space, and @d"
+      );
     });
   }
 );

@@ -17,7 +17,7 @@ modal-urlbar-destinations = Fuzzy history and bookmarks. Control-N and Control-P
 modal-urlbar-history = Fuzzy history search. Control-N and Control-P select results.
 modal-urlbar-bookmarks = Fuzzy bookmark search. Control-N and Control-P select results.
 modal-urlbar-tabs = Fuzzy tab search. Control-N and Control-P select a tab.
-modal-urlbar-engines = Choose a search engine. Type to filter, Control-N and Control-P select, Enter confirms, Escape cancels.
+modal-urlbar-engines = Choose a search engine. Type to filter, Control-N and Control-P select, Enter confirms. An alias followed by a space starts a new query. Escape cancels.
 
 modal-newtab-title = Keyboard shortcut reference
 modal-newtab-intro = Press Escape to leave the address bar, then try these command-mode shortcuts. Click a text field or enter insert mode to type normally. Escape returns to command mode.
@@ -67,4 +67,4 @@ modal-shortcut-urlbar-tabs = Find an open tab
 modal-shortcut-urlbar-search = Search the web
 modal-shortcut-address-next = Select the next suggestion
 modal-shortcut-address-previous = Select the previous suggestion
-modal-shortcut-address-engines = Open or leave the search-engine picker
+modal-shortcut-address-engines = Choose or clear a search engine

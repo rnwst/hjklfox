@@ -112,12 +112,24 @@ unmatched local query stays in the picker instead of becoming an unexpected web
 search. Explicit URLs and engine aliases retain native handling. Use Space-s to
 search the web, or type an engine alias followed by your query.
 
-Ctrl-Space opens the engine picker. Type part of a name or alias, select a result
-with Ctrl-n/Ctrl-p, then press Enter. Switching engines retains your original
-query; Escape restores it and the previous source/engine, then leaves address-bar
-mode in the same press. Ctrl-Space again returns to query editing without leaving
-the address bar. This uses Firefox's
-registered engines, including custom engines configured in Search settings.
+Typing `@` or an engine-alias prefix uses the same engine choices as Ctrl-Space,
+with icons and aliases. Exact aliases rank before longer prefix matches.
+Ctrl-Space keeps an already active `@` picker instead of replacing its input.
+
+With an engine selected, Ctrl-Space clears that selection while keeping the
+query and address-bar focus. Aliases can then select another engine, or Enter
+can search normally using the default engine.
+
+With no engine selected, Ctrl-Space opens the engine picker. Type part of a name or
+alias, select a result with Ctrl-n/Ctrl-p, then press Enter. Switching engines
+retains your original query. Escape restores it and the previous source/engine,
+then leaves address-bar mode in the same press. Ctrl-Space again returns to query
+editing without leaving the address bar. This uses Firefox's registered engines,
+including custom engines configured in Search settings.
+
+Typing a complete alias followed by a space also selects that engine from inside
+the picker. This starts a new query: any text after the alias becomes the query,
+and subsequent typing continues it. The old page address is not inserted into it.
 
 On first enabled startup, these default aliases are installed:
 

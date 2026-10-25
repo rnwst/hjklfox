@@ -62,13 +62,15 @@ The implementation is isolated in `browser/components/modal/`:
   presentation and localization.
 
 `ModalNavigation.mode` is an interaction mode. `ModalUrlbar.mode` is a query source
-or picker state; null means native URL-bar handling. Do not conflate them.
+or explicit picker state; null leaves ordinary URL-bar handling active, while
+engine-alias offers still use the shared engine picker provider. Do not conflate
+these states.
 
 Keep upstream edits concentrated in window startup (`browser-init.js`), actor
 registration (`DesktopActorRegistry.sys.mjs`), packaging, preferences
-(`firefox.js`), tab-switch focus memory (`Tabbrowser.sys.mjs`), and the existing
-key/menu definitions. Avoid unrelated formatting,
-renames, or copies of upstream services: those increase future merge work.
+(`firefox.js`), tab-switch focus memory (`Tabbrowser.sys.mjs`), engine-result
+rendering (`UrlbarView.mjs`), and the existing key/menu definitions. Avoid unrelated
+formatting, renames, or copies of upstream services: those increase future merge work.
 
 Important invariants established by regressions:
 
