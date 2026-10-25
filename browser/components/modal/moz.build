@@ -7,6 +7,7 @@ MOZ_SRC_FILES += [
     "Keymap.sys.mjs",
     "ModalChild.sys.mjs",
     "ModalEngines.sys.mjs",
+    "ModalKeyPopup.sys.mjs",
     "ModalNavigation.sys.mjs",
     "ModalNewTabChild.sys.mjs",
     "ModalParent.sys.mjs",

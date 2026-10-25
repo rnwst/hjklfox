@@ -35,3 +35,9 @@
   clip-path: inset(100%);
   white-space: nowrap;
 }
+
+.modal-key-backdrop {
+  position: fixed;
+  pointer-events: none;
+  backdrop-filter: blur(var(--modal-backdrop-blur));
+}

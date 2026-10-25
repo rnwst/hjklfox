@@ -8,6 +8,7 @@ import {
   hintLabels,
 } from "moz-src:///browser/components/modal/Keymap.sys.mjs";
 import { configureSimplifiedChrome } from "moz-src:///browser/components/modal/SimplifiedChrome.sys.mjs";
+import { ModalKeyPopup } from "moz-src:///browser/components/modal/ModalKeyPopup.sys.mjs";
 
 const PREF = "browser.modal.enabled";
 const KEYMAP_PREF = "browser.modal.keybindings";
@@ -36,6 +37,7 @@ export class ModalNavigation {
   constructor(win) {
     configureSimplifiedChrome(win);
     this.window = win;
+    this.keyPopup = new ModalKeyPopup(win);
     this.mode = "command";
     this.suppressed = new Set();
     this.generation = 0;
@@ -52,6 +54,8 @@ export class ModalNavigation {
       "focusin",
       "blur",
       "unload",
+      "popupshowing",
+      "pointerdown",
     ]) {
       const target = type.startsWith("key") ? win.windowRoot : win;
       target.addEventListener(type, this, true);
@@ -119,7 +123,7 @@ export class ModalNavigation {
       mode = "address";
     }
     this.cancelHints();
-    this.keymap.reset();
+    this.resetKeys();
     this.mode = mode;
     this.documentId =
       this.window.gBrowser.selectedBrowser.browsingContext.currentWindowGlobal?.innerWindowId;
@@ -215,6 +219,16 @@ export class ModalNavigation {
     if (!this.enabled) {
       return;
     }
+    if (event.type === "popupshowing") {
+      if (event.target.matches("panel, menupopup")) {
+        this.resetKeys();
+      }
+      return;
+    }
+    if (event.type === "pointerdown") {
+      this.resetKeys();
+      return;
+    }
     if (event.type === "TabSelect") {
       this.urlbar?.reset();
       this.chromeEditing = this.isAddressBarFocus();
@@ -224,7 +238,7 @@ export class ModalNavigation {
     if (event.type === "blur") {
       if (event.target === win) {
         this.cancelHints();
-        this.keymap.reset();
+        this.resetKeys();
         this.suppressed.clear();
       }
       return;
@@ -295,7 +309,7 @@ export class ModalNavigation {
     }
     const token = keyToken(event);
     if (token === null) {
-      this.keymap.reset();
+      this.resetKeys();
       return;
     }
     const printable = event.key.length === 1 && !event.ctrlKey;
@@ -305,11 +319,12 @@ export class ModalNavigation {
       return;
     }
     if (!printable && !this.keymap.accepts(token)) {
-      this.keymap.reset();
+      this.resetKeys();
       return;
     }
     this.consume(event);
     const action = this.keymap.feed(token);
+    this.keyPopup.update(this.keymap).catch(console.error);
     if (action && (!event.repeat || action.command.startsWith("scroll."))) {
       if (this.hints && !action.command.startsWith("scroll.")) {
         this.cancelHints();
@@ -324,6 +339,11 @@ export class ModalNavigation {
     this.suppressed.add(event.code || event.key);
     event.preventDefault();
     event.stopImmediatePropagation();
+  }
+
+  resetKeys() {
+    this.keymap.reset();
+    this.keyPopup.hide();
   }
 
   escape(event, active, inContent) {
@@ -536,6 +556,7 @@ export class ModalNavigation {
   }
 
   destroy() {
+    this.keyPopup.destroy();
     this.urlbar?.destroy();
     this.cancelHints();
     Services.prefs.removeObserver(PREF, this.observe);
@@ -547,6 +568,8 @@ export class ModalNavigation {
       "focusin",
       "blur",
       "unload",
+      "popupshowing",
+      "pointerdown",
     ]) {
       const target = type.startsWith("key")
         ? this.window.windowRoot

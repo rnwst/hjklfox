@@ -29,6 +29,10 @@ modal-newtab-group-find = Page search
 modal-newtab-group-hints = Link and button hints
 modal-newtab-group-other = Other shortcuts
 
+# $prefix is the key sequence entered so far, such as "Space" or "g".
+modal-key-completions-title = { $prefix } — complete a shortcut
+modal-key-completions-cancel = Escape to cancel
+
 modal-shortcut-scroll-left = Scroll left
 modal-shortcut-scroll-down = Scroll down
 modal-shortcut-scroll-up = Scroll up

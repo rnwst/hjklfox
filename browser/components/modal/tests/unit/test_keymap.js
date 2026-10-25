@@ -45,6 +45,25 @@ add_task(function shared_preference_parsing() {
   Assert.deepEqual(keys.feed("z"), { command: "scroll.down", count: 1 });
 });
 
+add_task(function prefix_completions_follow_overrides() {
+  const keys = new Keymap({
+    "Space f": null,
+    "Space q t": "urlbar.tabs",
+  });
+  Assert.deepEqual(keys.completions(), []);
+  keys.feed("Space");
+  Assert.ok(!keys.completions().some(item => item.keys === "f"));
+  Assert.ok(keys.completions().some(item => item.keys === "q t"));
+  keys.feed("q");
+  Assert.deepEqual(keys.completions(), [{ keys: "t", command: "urlbar.tabs" }]);
+  Assert.equal(keys.feed("t").command, "urlbar.tabs");
+  Assert.deepEqual(keys.completions(), []);
+  keys.feed("g");
+  Assert.ok(keys.completions().some(item => item.command === "hint.follow"));
+  keys.feed("z");
+  Assert.deepEqual(keys.completions(), []);
+});
+
 add_task(function labels_are_unique_and_prefix_free() {
   for (const count of [0, 1, 9, 10, 81, 82, 1000]) {
     const labels = hintLabels(count);

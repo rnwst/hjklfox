@@ -6,6 +6,8 @@ prefs = ["browser.modal.enabled=true", "general.smoothScroll=false"]
 
 ["browser_modal_buttons.js"]
 
+["browser_modal_key_popup.js"]
+
 ["browser_modal_native.js"]
 skip-if = ["os != 'linux'", "headless"]
 

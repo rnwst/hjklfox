@@ -28,3 +28,66 @@
 #alltabs-button {
   display: none !important;
 }
+
+#modal-key-completions {
+  position: fixed;
+  inset: auto var(--space-medium) auto auto;
+  top: calc(var(--modal-key-popup-top, 0px) + var(--space-medium));
+  box-sizing: border-box;
+  margin: 0;
+  padding: var(--space-large);
+  /* The available viewport width has no fixed size token. */
+  /* stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens */
+  max-inline-size: calc(100vw - 2 * var(--space-medium));
+  color: var(--panel-text-color);
+  background-color: var(--background-color-box);
+  border: var(--border-width) solid var(--panel-border-color);
+  border-radius: var(--panel-border-radius);
+  box-shadow: var(--panel-box-shadow);
+}
+
+@media not (forced-colors) {
+  #modal-key-completions {
+    background-color: color-mix(in srgb, var(--background-color-box) 90%, transparent);
+    backdrop-filter: blur(8px);
+  }
+}
+
+.modal-key-completions-content {
+  max-inline-size: var(--size-layout-large);
+  max-block-size: 60vh;
+  overflow: auto;
+}
+
+.modal-key-completions-content h2 {
+  margin: 0;
+  font-size: var(--font-size-heading-medium);
+}
+
+.modal-key-completions-content dl {
+  margin-block: var(--space-medium);
+}
+
+.modal-key-completions-content dl > div {
+  display: grid;
+  grid-template-columns: var(--size-item-xlarge) minmax(0, 1fr);
+  gap: var(--space-large);
+  padding-block: var(--space-xsmall);
+  align-items: baseline;
+}
+
+.modal-key-completions-content dt,
+.modal-key-completions-content dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.modal-key-completions-content kbd {
+  font: inherit;
+  font-weight: var(--font-weight-semibold);
+}
+
+.modal-key-completions-content p {
+  margin: 0;
+  color: var(--text-color-deemphasized);
+}

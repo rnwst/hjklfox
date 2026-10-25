@@ -111,6 +111,19 @@ export class Keymap {
       sequence => sequence === candidate || sequence.startsWith(`${candidate} `)
     );
   }
+
+  completions() {
+    if (!this.prefix) {
+      return [];
+    }
+    const prefix = `${this.prefix} `;
+    return Object.entries(this.bindings)
+      .filter(([sequence]) => sequence.startsWith(prefix))
+      .map(([sequence, command]) => ({
+        keys: sequence.slice(prefix.length),
+        command,
+      }));
+  }
 }
 
 export function hintLabels(count, alphabet = "asdfghjkl") {

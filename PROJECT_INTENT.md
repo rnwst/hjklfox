@@ -39,9 +39,9 @@ handoff is not a roadmap.
 - Seed engine aliases once; do not overwrite later user changes. Product-level
   chrome simplifications and retired shortcuts are separate from the switch that
   disables modal key interception.
-- Keep the new-tab keyboard guide generated from the active keymap. Add a
-  localized guide description with each new command; the coverage test must
-  continue to require descriptions for all default commands.
+- Keep the new-tab keyboard guide and prefix popup generated from the active
+  keymap. Add a localized guide description with each new command; the coverage
+  test must continue to require descriptions for all default commands.
 
 ## Architecture and review boundaries
 
@@ -104,6 +104,12 @@ Important invariants established by regressions:
   Honor `CLOBBER` with `./mach clobber` when required; do not bypass it by touching
   the marker. `build faster` is for subsequent frontend-only changes, not the
   initial validation of a new upstream revision. Test-only edits need no rebuild.
+- After syncing new modules or packaging changes into an existing build, run
+  `./mach build-backend` before `./mach build faster`. Rsync can preserve older
+  source timestamps, so incremental builds may miss changed manifests. Include
+  untracked source files in the sync. A missing `moz-src:///` module can abort
+  modal initialization and interrupt browser startup; check both the source file
+  and its installed counterpart under `obj-*/dist/bin/moz-src/`.
 
 ## Environment and verification tools
 

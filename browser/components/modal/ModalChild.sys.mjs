@@ -10,6 +10,8 @@ export class ModalChild extends JSWindowActorChild {
   targetKeys = [];
   overlay = null;
   overlayDocument = null;
+  keyBackdrop = null;
+  keyBackdropDocument = null;
   generation = null;
   lastEditor = null;
   pointerFocusPending = false;
@@ -75,6 +77,7 @@ export class ModalChild extends JSWindowActorChild {
         this.sendAsyncMessage("Modal:PageShow");
         break;
       case "pagehide":
+        this.setKeyBackdrop(null);
         if (this.generation !== null) {
           this.sendAsyncMessage("Modal:FrameGone", {
             generation: this.generation,
@@ -92,6 +95,9 @@ export class ModalChild extends JSWindowActorChild {
 
   receiveMessage({ name, data }) {
     switch (name) {
+      case "Modal:KeyBackdrop":
+        this.setKeyBackdrop(data);
+        break;
       case "Modal:Blur": {
         const element = Services.focus.getFocusedElementForWindow(
           this.contentWindow,
@@ -203,6 +209,45 @@ export class ModalChild extends JSWindowActorChild {
       }
     }
     return null;
+  }
+
+  setKeyBackdrop(bounds) {
+    if (this.keyBackdrop) {
+      try {
+        this.keyBackdropDocument.removeAnonymousContent(this.keyBackdrop);
+      } catch {}
+      this.keyBackdrop = null;
+      this.keyBackdropDocument = null;
+    }
+    if (!bounds || this.document.visibilityState === "hidden") {
+      return;
+    }
+    const scale = bounds.devicePixelRatio / this.contentWindow.devicePixelRatio;
+    this.keyBackdropDocument = this.document;
+    this.keyBackdrop = this.document.insertAnonymousContent();
+    const root = this.keyBackdrop.root;
+    const stylesheet = this.document.createElementNS(
+      "http://www.w3.org/1999/xhtml",
+      "link"
+    );
+    stylesheet.rel = "stylesheet";
+    stylesheet.href = "chrome://browser/content/modal/hints.css";
+    const backdrop = this.document.createElementNS(
+      "http://www.w3.org/1999/xhtml",
+      "div"
+    );
+    backdrop.className = "modal-key-backdrop";
+    for (const [property, value] of Object.entries({
+      left: bounds.x,
+      top: bounds.y,
+      width: bounds.width,
+      height: bounds.height,
+      borderRadius: bounds.radius,
+    })) {
+      backdrop.style[property] = `${value * scale}px`;
+    }
+    backdrop.style.setProperty("--modal-backdrop-blur", `${8 * scale}px`);
+    root.append(stylesheet, backdrop);
   }
 
   linkURL(element) {
@@ -443,6 +488,7 @@ export class ModalChild extends JSWindowActorChild {
   }
 
   didDestroy() {
+    this.setKeyBackdrop(null);
     this.clear();
     this.lastEditor = null;
   }

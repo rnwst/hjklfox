@@ -52,6 +52,16 @@ add_task(
         window.addEventListener("command", onCommand, true);
         try {
           await nativeKey("space", " ");
+          await TestUtils.waitForCondition(() =>
+            document
+              .getElementById("modal-key-completions")
+              ?.matches(":popover-open")
+          );
+          Assert.equal(
+            document.activeElement,
+            browser,
+            "Native prefix help keeps page focus"
+          );
           await nativeKey("f", "f");
           await TestUtils.waitForCondition(
             () => document.activeElement === gURLBar.inputField

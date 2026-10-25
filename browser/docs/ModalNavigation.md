@@ -62,6 +62,12 @@ physical keyboard positions. In command mode, matching modal bindings override
 Firefox's existing bindings, such as `Ctrl-u` for View Source. Insert mode keeps
 Firefox's native shortcuts.
 
+Starting a sequence such as `Space` or `g` opens a small completion popup at the
+top right, below the navigation toolbar. It shows the remaining keys and their
+actions using your current bindings, including custom sequences. Keep typing to
+complete the shortcut; the popup does not take focus. Escape, an unmatched key,
+changing tabs, or leaving command mode dismisses it.
+
 Alt-d and Ctrl-l no longer focus the address bar; use Space-f from command mode.
 
 The JSON string preference `browser.modal.keybindings` overrides defaults. For
@@ -164,6 +170,11 @@ usability with screen readers still require manual validation.
   APIs. Content-dependent commands go to the focused frame actor.
 - `Keymap.sys.mjs` parses sequences/counts and generates deterministic,
   fixed-length hint labels.
+- `ModalKeyPopup.sys.mjs` shows completions from the pending keymap prefix in a
+  non-focusing in-window popover, using the reference page's command descriptions.
+  `ModalChild.sys.mjs` supplies an anonymous blur layer in the content process
+  beneath the popover, so the translucent background blurs the page while the
+  shortcut text remains in browser chrome.
 - `ModalNewTabChild.sys.mjs` renders the new-tab guide from the same keymap.
   Each command has a `modal-shortcut-` Fluent description derived from its
   identifier. Browser tests require descriptions for every default command,
