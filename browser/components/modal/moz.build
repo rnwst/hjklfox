@@ -3,10 +3,13 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 MOZ_SRC_FILES += [
+    "FuzzySearch.sys.mjs",
     "Keymap.sys.mjs",
     "ModalChild.sys.mjs",
+    "ModalEngines.sys.mjs",
     "ModalNavigation.sys.mjs",
     "ModalParent.sys.mjs",
+    "ModalUrlbar.sys.mjs",
 ]
 
 JAR_MANIFESTS += ["jar.mn"]

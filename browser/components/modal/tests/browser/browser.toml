@@ -8,3 +8,5 @@ prefs = ["browser.modal.enabled=true", "general.smoothScroll=false"]
 
 ["browser_modal_native.js"]
 skip-if = ["os != 'linux'", "headless"]
+
+["browser_modal_urlbar.js"]

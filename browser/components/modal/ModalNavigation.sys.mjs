@@ -11,6 +11,10 @@ import {
 const PREF = "browser.modal.enabled";
 const KEYMAP_PREF = "browser.modal.keybindings";
 const SHEET = "chrome://browser/content/modal/modal.css";
+const lazy = {};
+ChromeUtils.defineESModuleGetters(lazy, {
+  ModalUrlbar: "moz-src:///browser/components/modal/ModalUrlbar.sys.mjs",
+});
 
 function send(actor, name, data) {
   try {
@@ -103,6 +107,10 @@ export class ModalNavigation {
       console.error("Invalid modal keybindings", error);
     }
     this.keymap = new Keymap(overrides);
+    if (this.enabled && !this.urlbar) {
+      this.urlbar = new lazy.ModalUrlbar(this.window);
+    }
+    this.urlbar?.reset();
     const mode = this.focusMode(this.activeElement);
     this.chromeEditing = mode !== "command";
     this.setMode(mode);
@@ -213,6 +221,7 @@ export class ModalNavigation {
       return;
     }
     if (event.type === "TabSelect") {
+      this.urlbar?.reset();
       this.chromeEditing = this.isAddressBarFocus();
       this.setMode(this.chromeEditing ? "address" : "command");
       return;
@@ -234,6 +243,7 @@ export class ModalNavigation {
           this.chromeEditing = true;
           this.setMode(mode);
         } else if (this.chromeEditing) {
+          this.urlbar?.reset();
           this.chromeEditing = false;
           const tabFocusPending = this.tabFocusPending;
           this.setMode("command");
@@ -266,6 +276,16 @@ export class ModalNavigation {
         'panel[panelopen="true"], menupopup[open="true"]'
       )
     ) {
+      return;
+    }
+    const inAddress = this.isAddressBarFocus(active);
+    if (inAddress && event.key === "Escape") {
+      this.consume(event);
+      this.exitAddressBar().catch(console.error);
+      return;
+    }
+    if (!inContent && inAddress && this.urlbar?.handleKey(event)) {
+      this.consume(event);
       return;
     }
     if (event.key === "Escape") {
@@ -338,7 +358,26 @@ export class ModalNavigation {
     }
   }
 
+  async exitAddressBar() {
+    const browser = this.window.gBrowser.selectedBrowser;
+    if (
+      !(await this.urlbar.exit()) ||
+      this.window.closed ||
+      browser !== this.window.gBrowser.selectedBrowser
+    ) {
+      return;
+    }
+    this.chromeEditing = false;
+    this.setMode("command");
+    browser.focus();
+    send(this.focusedActor(), "Modal:Blur");
+  }
+
   execute({ command, count }) {
+    if (command.startsWith("urlbar.")) {
+      this.urlbar.open(command.slice("urlbar.".length)).catch(console.error);
+      return;
+    }
     const browser = this.window.gBrowser;
     switch (command) {
       case "find.open":
@@ -502,6 +541,7 @@ export class ModalNavigation {
   }
 
   destroy() {
+    this.urlbar?.destroy();
     this.cancelHints();
     Services.prefs.removeObserver(PREF, this.observe);
     Services.prefs.removeObserver(KEYMAP_PREF, this.observe);

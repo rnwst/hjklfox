@@ -24,6 +24,12 @@ export const DEFAULT_BINDINGS = Object.freeze({
   "C-i": "history.forward",
   "g w": "hint.follow",
   i: "mode.insert",
+  "Space f": "urlbar.destinations",
+  "Space e": "urlbar.edit",
+  "Space h": "urlbar.history",
+  "Space m": "urlbar.bookmarks",
+  "Space b": "urlbar.tabs",
+  "Space s": "urlbar.search",
 });
 
 export function keyToken(event) {

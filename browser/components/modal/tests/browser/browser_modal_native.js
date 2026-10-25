@@ -20,6 +20,111 @@ add_setup(async function native_tools() {
   }
 });
 
+add_task(
+  { skip_if: () => !xdotool },
+  async function native_address_suggestions() {
+    const urls = [
+      `${NATIVE_PAGE}?nativepick-one`,
+      `${NATIVE_PAGE}?nativepick-two`,
+    ];
+    await gModalNavigation.urlbar.ready;
+    for (const [index, url] of urls.entries()) {
+      await PlacesUtils.history.insert({
+        url,
+        title: `Nativepick ${index}`,
+        visits: [{ transition: PlacesUtils.history.TRANSITIONS.LINK }],
+      });
+    }
+    try {
+      await BrowserTestUtils.withNewTab(NATIVE_PAGE, async browser => {
+        await TestUtils.waitForCondition(() =>
+          document.title.includes("Modal native keyboard test")
+        );
+        await focusNativeBrowser(browser);
+        const unexpected = [];
+        const onCommand = event => {
+          if (["cmd_newNavigator", "cmd_print"].includes(event.target.id)) {
+            unexpected.push(event.target.id);
+            event.preventDefault();
+            event.stopImmediatePropagation();
+          }
+        };
+        window.addEventListener("command", onCommand, true);
+        try {
+          await nativeKey("space", " ");
+          await nativeKey("f", "f");
+          await TestUtils.waitForCondition(
+            () => document.activeElement === gURLBar.inputField
+          );
+          await xdo("type", "--clearmodifiers", "--delay", "1", "nativepick");
+          await TestUtils.waitForCondition(
+            () =>
+              gURLBar.value === "nativepick" &&
+              gURLBar.view.getResultAtIndex(1)?.providerName === "ModalLocal"
+          );
+          gURLBar.view.selectedRowIndex = 0;
+          const first = gURLBar.view.selectedResult.payload.url;
+          await nativeKey("ctrl+n", "Control");
+          Assert.notEqual(
+            gURLBar.view.selectedResult.payload.url,
+            first,
+            "Native Ctrl-n selects another result"
+          );
+          await nativeKey("ctrl+p", "Control");
+          Assert.equal(
+            gURLBar.view.selectedResult.payload.url,
+            first,
+            "Native Ctrl-p returns to the previous result"
+          );
+          Assert.deepEqual(
+            unexpected,
+            [],
+            "Reserved native commands do not steal result navigation"
+          );
+          await nativeKey("ctrl+a", "Control");
+          await xdo("type", "--clearmodifiers", "--delay", "1", "quasar query");
+          await TestUtils.waitForCondition(
+            () => gURLBar.value === "quasar query"
+          );
+          await nativeKey("ctrl+space", "Control");
+          await TestUtils.waitForCondition(
+            () => gModalNavigation.urlbar.mode === "engines"
+          );
+          await xdo("type", "--clearmodifiers", "--delay", "1", "Perplexity");
+          await TestUtils.waitForCondition(
+            () =>
+              gURLBar.view.getResultAtIndex(0)?.payload.engine === "Perplexity"
+          );
+          await nativeKey("Return", "Enter");
+          await TestUtils.waitForCondition(
+            () =>
+              gURLBar.searchMode?.engineName === "Perplexity" &&
+              gURLBar.value === "quasar query"
+          );
+          Assert.equal(
+            gModalNavigation.mode,
+            "address",
+            "Native engine selection stays in address mode and preserves the query"
+          );
+          await nativeKey("Escape", "Escape");
+          await TestUtils.waitForCondition(
+            () => document.activeElement === browser
+          );
+          Assert.equal(
+            gModalNavigation.mode,
+            "command",
+            "One native Escape leaves address editing"
+          );
+        } finally {
+          window.removeEventListener("command", onCommand, true);
+        }
+      });
+    } finally {
+      await PlacesUtils.history.remove(urls);
+    }
+  }
+);
+
 async function xdo(...args) {
   const process = await Subprocess.call({ command: xdotool, arguments: args });
   const output = await process.stdout.readString();
@@ -203,6 +308,41 @@ add_task({ skip_if: () => !xdotool }, async function native_keyboard_routing() {
         Assert.ok(true, "Native typing resumes the editor after Escape");
       });
       await nativeKey("Escape", "Escape");
+      await nativeKey("space", " ");
+      await nativeKey("f", "f");
+      await TestUtils.waitForCondition(
+        () => document.activeElement === gURLBar.inputField
+      );
+      Assert.equal(
+        gModalNavigation.urlbar.mode,
+        "destinations",
+        "Native Space f opens the replacement picker"
+      );
+      Assert.equal(
+        gModalNavigation.mode,
+        "address",
+        "The address bar has its own mode"
+      );
+      await nativeKey("Escape", "Escape");
+      await TestUtils.waitForCondition(
+        () => document.activeElement === browser
+      );
+      Assert.equal(gModalNavigation.mode, "command");
+      const address = gURLBar.untrimmedValue;
+      await nativeKey("space", " ");
+      await nativeKey("e", "e");
+      await TestUtils.waitForCondition(
+        () => document.activeElement === gURLBar.inputField
+      );
+      Assert.equal(
+        gURLBar.untrimmedValue,
+        address,
+        "Native Space e preserves the address"
+      );
+      await nativeKey("Escape", "Escape");
+      await TestUtils.waitForCondition(
+        () => document.activeElement === browser
+      );
     } finally {
       window.removeEventListener("command", onCommand, true);
     }

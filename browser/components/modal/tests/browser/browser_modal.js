@@ -378,7 +378,7 @@ add_task(async function binding_overrides() {
   });
 });
 
-add_task(async function disabled_mode_preserves_native_typing() {
+add_task(async function disabled_mode_and_address_bar() {
   await openPage(async browser => {
     await SpecialPowers.pushPrefEnv({
       set: [["browser.modal.enabled", false]],
@@ -396,6 +396,17 @@ add_task(async function disabled_mode_preserves_native_typing() {
     } finally {
       await SpecialPowers.popPrefEnv();
     }
+    EventUtils.synthesizeKey(" ");
+    EventUtils.synthesizeKey("f");
+    await TestUtils.waitForCondition(
+      () => document.activeElement === gURLBar.inputField
+    );
+    EventUtils.synthesizeKey("j");
+    Assert.equal(gURLBar.value, "j", "Address-bar text is not a modal command");
+    EventUtils.synthesizeKey("KEY_Escape");
+    await TestUtils.waitForCondition(() => document.activeElement === browser);
+    Assert.equal(document.activeElement, browser);
+    Assert.equal(gModalNavigation.mode, "command");
   });
 });
 
@@ -477,7 +488,8 @@ add_task(async function toolbar_theme_colors() {
           normal,
           `${name}: normal color restored`
         );
-        gURLBar.focus();
+        EventUtils.synthesizeKey(" ");
+        EventUtils.synthesizeKey("e");
         await TestUtils.waitForCondition(
           () => gModalNavigation.mode === "address"
         );
