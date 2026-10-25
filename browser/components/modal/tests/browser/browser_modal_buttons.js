@@ -7,10 +7,10 @@
 const BUTTON_PAGE =
   "https://example.com/browser/browser/components/modal/tests/browser/buttons.html";
 
-async function showHints(browser) {
+async function showHints(browser, newTab = false) {
   browser.focus();
   EventUtils.synthesizeKey("g");
-  EventUtils.synthesizeKey("w");
+  EventUtils.synthesizeKey(newTab ? "W" : "w", { shiftKey: newTab });
   await TestUtils.waitForCondition(
     () => gModalNavigation.hints?.targets.length > 0
   );
@@ -63,6 +63,151 @@ add_task(async function buttons_are_hint_targets() {
       );
       Assert.ok(true, "Submit buttons keep their native form action");
     });
+  });
+});
+
+add_task(async function new_tab_hints_use_native_link_activation() {
+  for (const background of [true, false]) {
+    await SpecialPowers.pushPrefEnv({
+      set: [["browser.tabs.loadInBackground", background]],
+    });
+    try {
+      await BrowserTestUtils.withNewTab(BUTTON_PAGE, async browser => {
+        const original = gBrowser.selectedTab;
+        await SpecialPowers.spawn(browser, [], () => {
+          content.document
+            .getElementById("first")
+            .addEventListener("auxclick", event => {
+              content.document.body.dataset.auxclick = JSON.stringify({
+                button: event.button,
+                trusted: event.isTrusted,
+                activation: content.navigator.userActivation.isActive,
+              });
+            });
+        });
+        const hints = await showHints(browser, true);
+        Assert.deepEqual(
+          hints.map(hint => hint.id),
+          ["first", "second"],
+          "New-tab hints label only links"
+        );
+        const opened = BrowserTestUtils.waitForNewTab(
+          gBrowser,
+          `${BUTTON_PAGE}#one`
+        );
+        EventUtils.sendString(hints.find(hint => hint.id === "first").label);
+        const tab = await opened;
+        try {
+          if (!background) {
+            await TestUtils.waitForCondition(
+              () => gBrowser.selectedTab === tab
+            );
+          }
+          Assert.equal(
+            gBrowser.selectedTab,
+            background ? original : tab,
+            "New-tab hints respect the tab-selection preference"
+          );
+          Assert.equal(
+            browser.currentURI.spec,
+            BUTTON_PAGE,
+            "The source tab does not navigate"
+          );
+          Assert.equal(gModalNavigation.hints, null);
+          await SpecialPowers.spawn(browser, [], () => {
+            Assert.deepEqual(
+              JSON.parse(content.document.body.dataset.auxclick),
+              {
+                button: 1,
+                trusted: true,
+                activation: true,
+              },
+              "The link receives a trusted native middle-click with user activation"
+            );
+          });
+        } finally {
+          BrowserTestUtils.removeTab(tab);
+        }
+      });
+    } finally {
+      await SpecialPowers.popPrefEnv();
+    }
+  }
+});
+
+add_task(async function new_tab_hints_preserve_cancellation() {
+  await BrowserTestUtils.withNewTab(BUTTON_PAGE, async browser => {
+    const tabCount = gBrowser.tabs.length;
+    await SpecialPowers.spawn(browser, [], () => {
+      content.document
+        .getElementById("first")
+        .addEventListener("auxclick", event => {
+          event.preventDefault();
+          content.document.body.dataset.cancelled = "true";
+        });
+    });
+    const hints = await showHints(browser, true);
+    EventUtils.sendString(hints.find(hint => hint.id === "first").label);
+    await SpecialPowers.spawn(browser, [], async () => {
+      await ContentTaskUtils.waitForCondition(
+        () => content.document.body.dataset.cancelled === "true"
+      );
+    });
+    Assert.equal(
+      gBrowser.tabs.length,
+      tabCount,
+      "Page cancellation prevents opening a tab"
+    );
+    await showHints(browser, true);
+    EventUtils.synthesizeKey("KEY_Escape");
+    Assert.equal(gModalNavigation.hints, null);
+    const normal = await showHints(browser);
+    Assert.ok(
+      normal.some(hint => hint.id === "action"),
+      "Normal hints still include buttons after leaving new-tab mode"
+    );
+    EventUtils.synthesizeKey("KEY_Escape");
+  });
+});
+
+add_task(async function new_tab_hints_cover_remote_frames() {
+  const frameURL = BUTTON_PAGE.replace("example.com", "example.org").replace(
+    "buttons.html",
+    "page.html"
+  );
+  await BrowserTestUtils.withNewTab(BUTTON_PAGE, async browser => {
+    await SpecialPowers.spawn(browser, [frameURL], async url => {
+      const frame = content.document.createElement("iframe");
+      frame.style.cssText =
+        "position:fixed;left:400px;top:0;width:300px;height:250px";
+      frame.src = url;
+      const loaded = ContentTaskUtils.waitForEvent(frame, "load");
+      content.document.body.append(frame);
+      await loaded;
+    });
+    await showHints(browser, true);
+    const label = await SpecialPowers.spawn(
+      browser.browsingContext.children[0],
+      [],
+      async () => {
+        const actor = content.windowGlobalChild.getActor("Modal");
+        await ContentTaskUtils.waitForCondition(() => actor.overlay);
+        return actor.overlay.root.querySelector(".hint").dataset.label;
+      }
+    );
+    const opened = BrowserTestUtils.waitForNewTab(gBrowser, `${frameURL}#one`);
+    EventUtils.sendString(label);
+    const tab = await opened;
+    try {
+      Assert.equal(browser.currentURI.spec, BUTTON_PAGE);
+      Assert.equal(
+        tab.linkedBrowser.currentURI.spec,
+        `${frameURL}#one`,
+        "A remote frame's hint opens its own link destination"
+      );
+    } finally {
+      BrowserTestUtils.removeTab(tab);
+    }
   });
 });
 

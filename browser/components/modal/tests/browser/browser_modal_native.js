@@ -359,6 +359,29 @@ add_task({ skip_if: () => !xdotool }, async function native_keyboard_routing() {
       await TestUtils.waitForCondition(
         () => document.activeElement === browser
       );
+      await nativeKey("g", "g");
+      await nativeKey("shift+w", "Shift");
+      await TestUtils.waitForCondition(
+        () => gModalNavigation.hints?.targets.length === 2
+      );
+      const newTabLabel = gModalNavigation.hints.targets[0].label;
+      const sourceURL = browser.currentURI.spec;
+      const opened = BrowserTestUtils.waitForNewTab(
+        gBrowser,
+        `${NATIVE_PAGE}#one`
+      );
+      await nativeKey(newTabLabel, newTabLabel);
+      const tab = await opened;
+      try {
+        Assert.equal(
+          browser.currentURI.spec,
+          sourceURL,
+          "Native g W opens a new tab without navigating the source"
+        );
+        Assert.equal(gModalNavigation.hints, null);
+      } finally {
+        BrowserTestUtils.removeTab(tab);
+      }
     } finally {
       window.removeEventListener("command", onCommand, true);
     }

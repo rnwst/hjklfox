@@ -6,9 +6,12 @@ modal-mode-command = Command
 modal-mode-insert = Insert
 modal-mode-address = Address bar
 modal-hints-title = Page hints
+modal-hints-new-tab-title = Open a link in a new tab
 modal-hint-button = Button
 # $count is the number of available page hints; $prefix is the letters typed.
 modal-mode-hints = Hints ({ $count }): { $prefix }
+# $count is the number of available link hints; $prefix is the letters typed.
+modal-mode-hints-new-tab = New-tab hints ({ $count }): { $prefix }
 
 modal-urlbar-destinations = Fuzzy history and bookmarks. Control-N and Control-P select results. Enter opens the selected destination.
 modal-urlbar-history = Fuzzy history search. Control-N and Control-P select results.
@@ -18,7 +21,7 @@ modal-urlbar-engines = Choose a search engine. Type to filter, Control-N and Con
 
 modal-newtab-title = Keyboard shortcut reference
 modal-newtab-intro = Press Escape to leave the address bar, then try these command-mode shortcuts. Click a text field or enter insert mode to type normally. Escape returns to command mode.
-modal-newtab-tip = Keys separated by spaces are pressed in sequence. Ctrl means hold Control while pressing the key. Add a number before scrolling or switching tabs to repeat the action.
+modal-newtab-tip = Keys separated by spaces are pressed in sequence. Ctrl means hold Control while pressing the key. For uppercase letters, hold Shift. Add a number before scrolling or switching tabs to repeat the action.
 modal-newtab-customized = This guide follows your current bindings, including changes to browser.modal.keybindings in about:config.
 
 modal-newtab-group-address = Address-bar navigation
@@ -53,6 +56,7 @@ modal-shortcut-tab-previous = Previous tab
 modal-shortcut-history-back = Back in history
 modal-shortcut-history-forward = Forward in history
 modal-shortcut-hint-follow = Follow a link or activate a button using its label
+modal-shortcut-hint-follow-new-tab = Open a link in a new tab using its label
 modal-shortcut-mode-insert = Enter insert mode to type on the page
 modal-shortcut-urlbar-destinations = Find a destination in history and bookmarks
 modal-shortcut-urlbar-edit = Edit the current address or resume your query

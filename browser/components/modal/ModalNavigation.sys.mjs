@@ -138,7 +138,7 @@ export class ModalNavigation {
     if (this.hints) {
       this.window.document.l10n.setAttributes(
         this.indicator,
-        "modal-mode-hints",
+        this.hints.newTab ? "modal-mode-hints-new-tab" : "modal-mode-hints",
         {
           count: this.hints.targets.length,
           prefix: this.hints.prefix,
@@ -429,7 +429,8 @@ export class ModalNavigation {
         }
         break;
       case "hint.follow":
-        this.startHints().catch(console.error);
+      case "hint.follow-new-tab":
+        this.startHints(command === "hint.follow-new-tab").catch(console.error);
         break;
       default:
         if (command.startsWith("scroll.")) {
@@ -441,16 +442,18 @@ export class ModalNavigation {
     }
   }
 
-  async startHints() {
+  async startHints(newTab = false) {
     this.cancelHints();
     const generation = this.generation;
-    this.hints = { prefix: "", targets: [], actors: this.actors() };
+    this.hints = { prefix: "", targets: [], actors: this.actors(), newTab };
     const session = this.hints;
     for (const actor of session.actors) {
       actor.trackHints(this, generation);
     }
     const [title, buttonName] = await Promise.all([
-      this.window.document.l10n.formatValue("modal-hints-title"),
+      this.window.document.l10n.formatValue(
+        newTab ? "modal-hints-new-tab-title" : "modal-hints-title"
+      ),
       this.window.document.l10n.formatValue("modal-hint-button"),
     ]);
     if (generation !== this.generation) {
@@ -459,7 +462,10 @@ export class ModalNavigation {
     const counts = await Promise.all(
       session.actors.map(async actor => {
         try {
-          const count = await actor.sendQuery("Modal:Collect", { generation });
+          const count = await actor.sendQuery("Modal:Collect", {
+            generation,
+            newTab,
+          });
           return Number.isInteger(count) && count >= 0 && count <= 1000
             ? count
             : 0;

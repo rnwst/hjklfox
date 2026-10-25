@@ -72,6 +72,10 @@ add_task(async function prefixes_show_available_keys_without_taking_focus() {
       panel.querySelector('[data-keys="w"]'),
       "Go-prefix includes link hints"
     );
+    Assert.ok(
+      panel.querySelector('[data-keys="W"]'),
+      "Go-prefix includes new-tab link hints"
+    );
     EventUtils.synthesizeKey("KEY_Escape");
     await closed();
     Assert.equal(gModalNavigation.keymap.prefix, "");

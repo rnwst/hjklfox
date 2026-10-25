@@ -13,6 +13,7 @@ export class ModalChild extends JSWindowActorChild {
   keyBackdrop = null;
   keyBackdropDocument = null;
   generation = null;
+  newTabHint = false;
   lastEditor = null;
   pointerFocusPending = false;
   prefix = "";
@@ -132,10 +133,13 @@ export class ModalChild extends JSWindowActorChild {
       case "Modal:Collect":
         this.clear();
         this.generation = data.generation;
+        this.newTabHint = !!data.newTab;
         if (this.document.visibilityState === "hidden") {
           return 0;
         }
-        for (const element of this.document.querySelectorAll(HINT_TARGETS)) {
+        for (const element of this.document.querySelectorAll(
+          this.newTabHint ? "a[href]" : HINT_TARGETS
+        )) {
           if (this.point(element)) {
             this.targets.push(element);
             if (this.targets.length === 1000) {
@@ -161,12 +165,14 @@ export class ModalChild extends JSWindowActorChild {
           break;
         }
         const target = this.targets[data.index];
-        const point = this.point(target);
+        const newTab = this.newTabHint;
+        const point =
+          !newTab || target?.matches("a[href]") ? this.point(target) : null;
         this.clear();
         if (point) {
           for (const type of ["mousedown", "mouseup"]) {
             this.contentWindow.synthesizeMouseEvent(type, point.x, point.y, {
-              button: 0,
+              button: newTab ? 1 : 0,
               clickCount: 1,
               inputSource: this.contentWindow.MouseEvent.MOZ_SOURCE_MOUSE,
             });
@@ -485,6 +491,7 @@ export class ModalChild extends JSWindowActorChild {
     this.targets = [];
     this.targetKeys = [];
     this.generation = null;
+    this.newTabHint = false;
   }
 
   didDestroy() {

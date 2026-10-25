@@ -23,6 +23,7 @@ export const DEFAULT_BINDINGS = Object.freeze({
   "C-o": "history.back",
   "C-i": "history.forward",
   "g w": "hint.follow",
+  "g W": "hint.follow-new-tab",
   i: "mode.insert",
   "Space f": "urlbar.destinations",
   "Space e": "urlbar.edit",

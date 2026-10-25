@@ -35,6 +35,17 @@ add_task(function bindings_and_modifiers() {
   Assert.equal(keyToken({ key: "a", altKey: true, ctrlKey: true }), null);
 });
 
+add_task(function new_tab_hints_use_uppercase_w() {
+  const keys = new Keymap();
+  keys.feed("g");
+  Assert.equal(
+    keys.feed(keyToken({ key: "W", shiftKey: true })).command,
+    "hint.follow-new-tab"
+  );
+  keys.feed("g");
+  Assert.equal(keys.feed("w").command, "hint.follow");
+});
+
 add_task(function shared_preference_parsing() {
   const defaults = new Keymap().bindings;
   for (const value of ["invalid", "null", "[]", "true"]) {

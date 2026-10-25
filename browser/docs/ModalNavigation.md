@@ -45,7 +45,8 @@ colors, the tint is omitted.
 | `gh`, `gl` | Scroll to the left or right edge |
 | `gn`, `gp` | Next or previous tab |
 | `Ctrl-o`, `Ctrl-i` | History back or forward |
-| `gw` | Select a visible link by its letter label |
+| `gw` | Follow a link or activate a button by its letter label |
+| `gW` | Open a visible link in a new tab by its letter label |
 | `/` | Open page search |
 | `n`, `N` | Next or previous search result |
 | `i` | Enter insert mode |
@@ -149,6 +150,9 @@ Hints cover ordinary `a[href]` links and `<button>` elements, including
 cross-process frames. Disabled, aria-disabled, inert, and invisible targets are
 excluded. Activation rechecks current state and preserves native button clicks
 and form submission. Replaced buttons can retain labels when they have stable IDs.
+Press `g` then `Shift+w` for new-tab hints instead. This mode labels links only
+and activates them with a native middle-click, respecting Firefox's
+foreground/background tab preference and the link's native behavior.
 Labels are unique across the tab, with up to 1,000 targets per frame. Escape
 cancels; Backspace corrects the entered label. Yellow labels retain their
 assignments through late loading, scrolling, resizing, and DOM changes, updating
