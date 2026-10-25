@@ -146,6 +146,12 @@ browser chrome. Saved vertical tab layouts return to horizontal tabs at startup.
 Automatic translation offers default to off; translation can still be requested
 manually or re-enabled in settings.
 
+The default System theme follows the operating system's light/dark setting using
+Firefox's Nova design, including its colored background gradient and rounded
+tabs and address bar. The native GTK color override is disabled by default
+(`browser.theme.native-theme`), so GTK colors do not replace Firefox's palette.
+Explicit theme and preference choices remain in effect.
+
 Hints cover ordinary `a[href]` links and `<button>` elements, including
 cross-process frames. Disabled, aria-disabled, inert, and invisible targets are
 excluded. Activation rechecks current state and preserves native button clicks

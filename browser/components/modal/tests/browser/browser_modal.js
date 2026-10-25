@@ -444,6 +444,99 @@ add_task(async function tabs_and_hints() {
   });
 });
 
+add_task(async function default_theme_has_gradient_and_rounded_controls() {
+  const { AddonManager } = ChromeUtils.importESModule(
+    "resource://gre/modules/AddonManager.sys.mjs"
+  );
+  const original = (await AddonManager.getAddonsByTypes(["theme"])).find(
+    theme => theme.isActive
+  );
+  await SpecialPowers.pushPrefEnv({ set: [["ui.systemUsesDarkTheme", 1]] });
+  try {
+    await (
+      await AddonManager.getAddonByID("default-theme@mozilla.org")
+    ).enable();
+    await BrowserTestUtils.withNewTab("about:blank", async browser => {
+      browser.focus();
+      await TestUtils.waitForCondition(
+        () => window.matchMedia("(prefers-color-scheme: dark)").matches
+      );
+      const root = document.documentElement;
+      const background = root.hasAttribute("theme-image-in-toolbox")
+        ? document.getElementById("navigator-toolbox")
+        : document.body;
+      Assert.ok(
+        getComputedStyle(background).backgroundImage.includes(
+          "linear-gradient"
+        ),
+        "The System theme retains Nova's background gradient"
+      );
+      for (const element of [
+        gURLBar.querySelector(".urlbar-background"),
+        gBrowser.selectedTab.querySelector(".tab-background"),
+      ]) {
+        Assert.greaterOrEqual(
+          parseFloat(getComputedStyle(element).borderTopLeftRadius),
+          element.getBoundingClientRect().height / 2 - 1,
+          "The address bar and tabs have fully rounded ends"
+        );
+      }
+      await new Promise(resolve =>
+        window.requestAnimationFrame(() =>
+          window.requestAnimationFrame(resolve)
+        )
+      );
+      const canvas = document.createElementNS(
+        "http://www.w3.org/1999/xhtml",
+        "canvas"
+      );
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      const context = canvas.getContext("2d");
+      context.drawWindow(
+        window,
+        0,
+        0,
+        canvas.width,
+        canvas.height,
+        "white",
+        context.DRAWWINDOW_DRAW_CARET |
+          context.DRAWWINDOW_DRAW_VIEW |
+          context.DRAWWINDOW_USE_WIDGET_LAYERS
+      );
+      const toolbar = document
+        .getElementById("nav-bar")
+        .getBoundingClientRect();
+      const y = Math.floor(toolbar.top + toolbar.height / 2);
+      const left = context.getImageData(
+        Math.floor(toolbar.left + 4),
+        y,
+        1,
+        1
+      ).data;
+      const right = context.getImageData(
+        Math.floor(toolbar.right - 4),
+        y,
+        1,
+        1
+      ).data;
+      Assert.greater(
+        left[2],
+        left[0],
+        "The toolbar's leading edge is purple-tinted"
+      );
+      Assert.greater(
+        right[0],
+        right[2],
+        "The toolbar's trailing edge is red-tinted"
+      );
+    });
+  } finally {
+    await SpecialPowers.popPrefEnv();
+    await original.enable();
+  }
+});
+
 add_task(async function toolbar_theme_colors() {
   const { AddonManager } = ChromeUtils.importESModule(
     "resource://gre/modules/AddonManager.sys.mjs"

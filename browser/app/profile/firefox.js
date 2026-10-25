@@ -27,6 +27,7 @@ pref("browser.modal.enabled", true);
 pref("browser.modal.keybindings", "{}");
 pref("browser.newtabpage.enabled", false);
 pref("browser.translations.automaticallyPopup", false);
+pref("browser.theme.native-theme", false);
 
 // Set add-ons abuse report related prefs specific to Firefox Desktop.
 pref("extensions.abuseReport.enabled", true);
