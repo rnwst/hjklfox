@@ -840,7 +840,7 @@ add_task(async function uncluttered_defaults() {
   Assert.equal(defaults.getBoolPref("browser.newtabpage.enabled"), false);
   Assert.equal(
     defaults.getStringPref("browser.startup.homepage"),
-    "about:blank"
+    "about:newtab"
   );
   Assert.equal(
     defaults.getStringPref("browser.toolbars.bookmarks.visibility"),
@@ -854,16 +854,15 @@ add_task(async function uncluttered_defaults() {
   });
   try {
     await BrowserTestUtils.withNewTab("about:newtab", async browser => {
-      await SpecialPowers.spawn(browser, [], () => {
-        Assert.equal(
-          content.document.body?.textContent.trim() || "",
-          "",
-          "New-tab page is blank"
+      await SpecialPowers.spawn(browser, [], async () => {
+        await ContentTaskUtils.waitForCondition(
+          () => content.document.getElementById("modal-shortcuts"),
+          "New-tab page shows the keyboard guide"
         );
         Assert.equal(
           content.document.querySelectorAll("input, button, a, iframe").length,
           0,
-          "No new-tab controls or feed"
+          "The keyboard guide adds no new-tab controls or feed"
         );
       });
       Assert.ok(

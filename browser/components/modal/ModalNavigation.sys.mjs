@@ -99,16 +99,9 @@ export class ModalNavigation {
   }
 
   configure() {
-    let overrides = {};
-    try {
-      const value = JSON.parse(Services.prefs.getStringPref(KEYMAP_PREF, "{}"));
-      if (value && typeof value === "object" && !Array.isArray(value)) {
-        overrides = value;
-      }
-    } catch (error) {
-      console.error("Invalid modal keybindings", error);
-    }
-    this.keymap = new Keymap(overrides);
+    this.keymap = Keymap.fromJSON(
+      Services.prefs.getStringPref(KEYMAP_PREF, "{}")
+    );
     if (this.enabled && !this.urlbar) {
       this.urlbar = new lazy.ModalUrlbar(this.window);
     }

@@ -50,6 +50,17 @@ export function keyToken(event) {
 
 /** Parse modal key sequences without depending on browser state. */
 export class Keymap {
+  static fromJSON(value) {
+    let overrides = {};
+    try {
+      const parsed = JSON.parse(value);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        overrides = parsed;
+      }
+    } catch {}
+    return new Keymap(overrides);
+  }
+
   constructor(overrides = {}) {
     this.bindings = { ...DEFAULT_BINDINGS };
     const commands = new Set(Object.values(DEFAULT_BINDINGS));

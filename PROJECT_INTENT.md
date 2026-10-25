@@ -39,6 +39,9 @@ handoff is not a roadmap.
 - Seed engine aliases once; do not overwrite later user changes. Product-level
   chrome simplifications and retired shortcuts are separate from the switch that
   disables modal key interception.
+- Keep the new-tab keyboard guide generated from the active keymap. Add a
+  localized guide description with each new command; the coverage test must
+  continue to require descriptions for all default commands.
 
 ## Architecture and review boundaries
 

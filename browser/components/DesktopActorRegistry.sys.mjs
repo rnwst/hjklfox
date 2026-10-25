@@ -79,6 +79,18 @@ let JSPROCESSACTORS = {
  * available at https://firefox-source-docs.mozilla.org/dom/ipc/jsactors.html
  */
 let JSWINDOWACTORS = {
+  ModalNewTab: {
+    child: {
+      esModuleURI:
+        "moz-src:///browser/components/modal/ModalNewTabChild.sys.mjs",
+      events: {
+        DOMContentLoaded: {},
+      },
+    },
+    matches: ["about:newtab"],
+    remoteTypes: ["privilegedabout"],
+  },
+
   Modal: {
     parent: {
       esModuleURI: "moz-src:///browser/components/modal/ModalParent.sys.mjs",

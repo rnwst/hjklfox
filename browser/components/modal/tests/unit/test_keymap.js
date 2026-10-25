@@ -35,6 +35,16 @@ add_task(function bindings_and_modifiers() {
   Assert.equal(keyToken({ key: "a", altKey: true, ctrlKey: true }), null);
 });
 
+add_task(function shared_preference_parsing() {
+  const defaults = new Keymap().bindings;
+  for (const value of ["invalid", "null", "[]", "true"]) {
+    Assert.deepEqual(Keymap.fromJSON(value).bindings, defaults);
+  }
+  const keys = Keymap.fromJSON('{"j":null,"z":"scroll.down"}');
+  Assert.equal(keys.feed("j"), null);
+  Assert.deepEqual(keys.feed("z"), { command: "scroll.down", count: 1 });
+});
+
 add_task(function labels_are_unique_and_prefix_free() {
   for (const count of [0, 1, 9, 10, 81, 82, 1000]) {
     const labels = hintLabels(count);

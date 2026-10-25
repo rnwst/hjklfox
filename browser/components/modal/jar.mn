@@ -5,3 +5,4 @@
 browser.jar:
     content/browser/modal/modal.css (modal.css)
     content/browser/modal/hints.css (hints.css)
+    content/browser/modal/newtab.css (newtab.css)

@@ -126,9 +126,13 @@ Editable fields in internal pages use the same insert-mode transitions as web
 pages. Browser chrome text fields remain native inputs; Escape returns focus to
 the page and command mode after popups have been dismissed.
 
-New-tab content is disabled by default, the home page defaults to `about:blank`,
-and `browser.toolbars.bookmarks.visibility` defaults to `never`. These are defaults,
-not forced overrides of explicit user preferences.
+The default new-tab page shows a keyboard shortcut guide instead of Firefox's
+feed. Its key labels come from the active keymap, including custom bindings, and
+update when the keybinding preference changes. Disabling modal navigation hides
+the guide. Explicit Firefox Home or extension new-tab choices remain in effect.
+The startup home page also defaults to `about:newtab` so the reference appears
+when opening the browser. Explicitly opening `about:blank` remains blank, and
+`browser.toolbars.bookmarks.visibility` defaults to `never`.
 
 The sidebar, its opening shortcuts, and the tab-search button are removed from
 browser chrome. Saved vertical tab layouts return to horizontal tabs at startup.
@@ -160,6 +164,10 @@ usability with screen readers still require manual validation.
   APIs. Content-dependent commands go to the focused frame actor.
 - `Keymap.sys.mjs` parses sequences/counts and generates deterministic,
   fixed-length hint labels.
+- `ModalNewTabChild.sys.mjs` renders the new-tab guide from the same keymap.
+  Each command has a `modal-shortcut-` Fluent description derived from its
+  identifier. Browser tests require descriptions for every default command,
+  so new commands must include guide text alongside their implementation.
 - `ModalUrlbar.sys.mjs` adds the local provider and keyboard controls to the native
   URL bar. `FuzzySearch.sys.mjs` contains the matching/ranking helpers;
   `ModalEngines.sys.mjs` seeds default aliases through SearchService.

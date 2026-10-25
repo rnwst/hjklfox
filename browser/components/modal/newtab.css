@@ -1,0 +1,51 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+@import url("chrome://global/skin/in-content/common.css");
+
+body {
+  margin: 0;
+  padding: var(--space-xxlarge);
+}
+
+main {
+  max-inline-size: calc(var(--size-layout-xlarge) + var(--size-layout-small));
+  margin-inline: auto;
+}
+
+h1 {
+  font-size: var(--font-size-xxxlarge);
+}
+
+p {
+  line-height: 1.6;
+}
+
+section {
+  margin-block: var(--space-xxlarge);
+}
+
+dl {
+  display: block;
+}
+
+dl > div {
+  display: grid;
+  grid-template-columns: min(35%, var(--size-layout-xsmall)) minmax(0, 1fr);
+  gap: var(--space-large);
+  align-items: baseline;
+  padding-block: var(--space-small);
+  line-height: 1.6;
+}
+
+dt,
+dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+kbd {
+  font: inherit;
+  font-weight: var(--font-weight-semibold);
+}
