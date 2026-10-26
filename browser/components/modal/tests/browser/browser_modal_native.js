@@ -183,7 +183,10 @@ async function xdo(...args) {
   return output.trim();
 }
 
-async function focusNativeBrowser(browser) {
+async function focusNativeBrowser(
+  browser,
+  title = "Modal native keyboard test"
+) {
   const ids = await xdo(
     "search",
     "--all",
@@ -191,7 +194,7 @@ async function focusNativeBrowser(browser) {
     "--pid",
     String(Services.appinfo.processID),
     "--name",
-    "Modal native keyboard test"
+    title
   );
   const windows = ids.split("\n");
   Assert.equal(
@@ -382,6 +385,145 @@ add_task(
         "Native Enter submits the query after Space e, Ctrl-Space, and @d"
       );
     });
+  }
+);
+
+add_task(
+  { skip_if: () => !xdotool },
+  async function native_explicit_page_search() {
+    await SpecialPowers.pushPrefEnv({
+      set: [
+        ["findbar.highlightAll", true],
+        ["findbar.modalHighlight", false],
+      ],
+    });
+    try {
+      await BrowserTestUtils.withNewTab(
+        NATIVE_PAGE.replace("buttons.html", "search.html"),
+        async browser => {
+          await TestUtils.waitForCondition(() =>
+            document.title.includes("Modal page search test")
+          );
+          await focusNativeBrowser(browser, "Modal page search test");
+          await nativeKey("i", "i");
+          await nativeKey("slash", "/");
+          await SpecialPowers.spawn(browser, [], () => {
+            Assert.ok(
+              content.wrappedJSObject.keypresses.some(
+                event => event.key === "/" && !event.defaultPrevented
+              ),
+              "Native slash reaches the page in insert mode"
+            );
+          });
+          Assert.ok(!gFindBarInitialized || gFindBar.hidden);
+          await nativeKey("Escape", "Escape");
+          const normal = getComputedStyle(
+            document.getElementById("nav-bar")
+          ).backgroundColor;
+          await nativeKey("slash", "/");
+          const bar = await gFindBarPromise;
+          await TestUtils.waitForCondition(
+            () => document.activeElement === bar._findField
+          );
+          Assert.equal(gModalNavigation.mode, "search");
+          Assert.equal(
+            getComputedStyle(document.getElementById("nav-bar"))
+              .backgroundColor,
+            normal
+          );
+          await xdo("type", "--clearmodifiers", "--delay", "1", "luminous");
+          await SpecialPowers.spawn(browser, [], () =>
+            Assert.equal(content.scrollY, 0)
+          );
+          await xdo("type", "--clearmodifiers", "--delay", "1", " quasar");
+          const find = async (chord, key) => {
+            const found = new Promise(resolve => {
+              const listener = {
+                onFindResult(result) {
+                  if (result.searchString === "luminous quasar") {
+                    browser.finder.removeResultListener(listener);
+                    resolve();
+                  }
+                },
+              };
+              browser.finder.addResultListener(listener);
+            });
+            await nativeKey(chord, key);
+            await found;
+          };
+          const selected = () =>
+            SpecialPowers.spawn(
+              browser,
+              [],
+              () =>
+                content.windowGlobalChild
+                  .getActor("Finder")
+                  .finder._fastFind.getFoundRange().startContainer.parentElement
+                  .id
+            );
+          await find("Return", "Enter");
+          Assert.equal(await selected(), "first");
+          const options = [...bar.querySelectorAll("checkbox[accesskey]")];
+          Assert.equal(options.length, 4);
+          for (const option of options) {
+            const checked = option.checked;
+            await nativeKey(`alt+${option.getAttribute("accesskey")}`, "Alt");
+            Assert.equal(
+              option.checked,
+              checked,
+              "Native access keys are inactive after Enter"
+            );
+          }
+          await nativeKey("Return", "Enter");
+          Assert.equal(
+            await selected(),
+            "first",
+            "Native repeated Enter does not advance matches"
+          );
+          await nativeKey("Escape", "Escape");
+          await TestUtils.waitForCondition(
+            () => document.activeElement === browser
+          );
+          await SpecialPowers.spawn(browser, [], async () => {
+            const finder = content.windowGlobalChild.getActor("Finder").finder;
+            await ContentTaskUtils.waitForCondition(
+              () =>
+                finder
+                  ._getSelectionController(content)
+                  .getSelection(Ci.nsISelectionController.SELECTION_FIND)
+                  .rangeCount === 3
+            );
+          });
+          await find("n", "n");
+          Assert.equal(await selected(), "second");
+          await find("shift+n", "Shift");
+          Assert.equal(await selected(), "first");
+          Assert.equal(gModalNavigation.mode, "command");
+          Assert.ok(!bar.hidden);
+          await nativeKey("slash", "/");
+          await TestUtils.waitForCondition(
+            () => document.activeElement === bar._findField
+          );
+          const highlight = bar.getElement("highlight");
+          const checked = highlight.checked;
+          await nativeKey(`alt+${highlight.getAttribute("accesskey")}`, "Alt");
+          Assert.equal(
+            highlight.checked,
+            !checked,
+            "Native access key works after refocusing search"
+          );
+          await nativeKey(`alt+${highlight.getAttribute("accesskey")}`, "Alt");
+          for (const chord of ["Tab", "shift+Tab"]) {
+            await nativeKey(chord, chord === "Tab" ? "Tab" : "Shift");
+            Assert.equal(document.activeElement, bar._findField);
+          }
+          await nativeKey("Escape", "Escape");
+          Assert.ok(bar.hidden);
+        }
+      );
+    } finally {
+      await SpecialPowers.popPrefEnv();
+    }
   }
 );
 

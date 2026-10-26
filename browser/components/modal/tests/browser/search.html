@@ -1,0 +1,18 @@
+<!doctype html>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<meta charset="utf-8">
+<title>Modal page search test</title>
+<style>
+  body { min-height: 5000px; }
+  .match { margin-block-start: 1200px; }
+</style>
+<input id="editor">
+<p id="first" class="match">luminous quasar</p>
+<p id="second" class="match">luminous quasar</p>
+<p id="third" class="match">luminous quasar</p>
+<script>
+  window.keypresses = [];
+  addEventListener("keypress", event => window.keypresses.push(event));
+</script>

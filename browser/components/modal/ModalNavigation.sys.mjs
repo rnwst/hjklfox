@@ -9,6 +9,7 @@ import {
 } from "moz-src:///browser/components/modal/Keymap.sys.mjs";
 import { configureSimplifiedChrome } from "moz-src:///browser/components/modal/SimplifiedChrome.sys.mjs";
 import { ModalKeyPopup } from "moz-src:///browser/components/modal/ModalKeyPopup.sys.mjs";
+import { ModalFind } from "moz-src:///browser/components/modal/ModalFind.sys.mjs";
 
 const PREF = "browser.modal.enabled";
 const KEYMAP_PREF = "browser.modal.keybindings";
@@ -37,6 +38,7 @@ export class ModalNavigation {
   constructor(win) {
     configureSimplifiedChrome(win);
     this.window = win;
+    this.find = new ModalFind(this);
     this.keyPopup = new ModalKeyPopup(win);
     this.mode = "command";
     this.suppressed = new Set();
@@ -99,6 +101,9 @@ export class ModalNavigation {
     if (this.isAddressBarFocus(element)) {
       return "address";
     }
+    if (this.isFindBarFocus(element)) {
+      return "search";
+    }
     return element?.matches("input, textarea, [contenteditable=true]")
       ? "insert"
       : "command";
@@ -106,9 +111,12 @@ export class ModalNavigation {
 
   isChromeEditor(element) {
     return (
-      element === this.window.gURLBar.inputField ||
-      element?.matches("findbar:not([hidden]) .findbar-textbox")
+      element === this.window.gURLBar.inputField || this.isFindBarFocus(element)
     );
+  }
+
+  isFindBarFocus(element = this.activeElement) {
+    return element?.matches("findbar:not([hidden]) .findbar-textbox");
   }
 
   isNavigationChrome(element) {
@@ -207,10 +215,16 @@ export class ModalNavigation {
   setMode(mode) {
     if (mode === "insert" && this.isAddressBarFocus()) {
       mode = "address";
+    } else if (mode === "insert" && this.isFindBarFocus()) {
+      mode = "search";
+    }
+    if (mode !== "search") {
+      this.find.cancel();
     }
     this.cancelHints();
     this.resetKeys();
     this.mode = mode;
+    this.find.updateOptions();
     this.documentId =
       this.window.gBrowser.selectedBrowser.browsingContext.currentWindowGlobal?.innerWindowId;
     this.tabFocusPending = false;
@@ -408,13 +422,21 @@ export class ModalNavigation {
       inContent = active === win.gBrowser.selectedBrowser;
     }
     const inAddress = this.isAddressBarFocus(active);
+    if (this.find.blocksAccessKey(event)) {
+      this.consume(event);
+      return;
+    }
+    if (this.find.isSubmitKey(event, active)) {
+      this.consume(event);
+      this.find.submit(active.closest("findbar"));
+      this.chromeEditing = false;
+      this.setMode("command");
+      win.gBrowser.selectedBrowser.focus();
+      return;
+    }
     if (this.tabFocusPending && !inContent && this.isChromeEditor(active)) {
-      if (inAddress) {
-        this.consume(event);
-        this.tabFocusPending = false;
-      } else {
-        this.escape(event, active, false);
-      }
+      this.consume(event);
+      this.tabFocusPending = false;
       return;
     }
     if (inAddress && event.key === "Escape") {
@@ -482,6 +504,7 @@ export class ModalNavigation {
     }
     if (
       this.mode === "insert" ||
+      this.find.opening ||
       this.hints ||
       this.keymap.prefix ||
       this.keymap.count ||
@@ -495,7 +518,7 @@ export class ModalNavigation {
         send(this.focusedActor(), "Modal:Blur");
       } else if (!inContent) {
         if (win.gFindBarInitialized && active.closest("findbar")) {
-          win.gFindBar.close();
+          this.find.close();
         }
         win.gBrowser.selectedBrowser.focus();
       }
@@ -525,14 +548,11 @@ export class ModalNavigation {
     const browser = this.window.gBrowser;
     switch (command) {
       case "find.open":
-        this.window.gLazyFindCommand("onFindCommand");
+        this.find.open().catch(console.error);
         break;
       case "find.next":
       case "find.previous":
-        this.window.gLazyFindCommand(
-          "onFindAgainCommand",
-          command === "find.previous"
-        );
+        this.find.again(command === "find.previous");
         break;
       case "mode.insert":
         this.setMode("insert");
@@ -703,6 +723,7 @@ export class ModalNavigation {
   }
 
   destroy() {
+    this.find.destroy();
     this.restoreChromeTabOrder();
     this.keyPopup.destroy();
     this.urlbar?.destroy();

@@ -881,6 +881,7 @@ add_task(async function slash_search_and_chrome_escape() {
       finder.addResultListener(listener);
     });
     EventUtils.sendString("First link");
+    EventUtils.synthesizeKey("KEY_Enter");
     Assert.ok(
       [
         Ci.nsITypeAheadFind.FIND_FOUND,
@@ -895,8 +896,13 @@ add_task(async function slash_search_and_chrome_escape() {
     );
     Assert.equal(
       gModalNavigation.mode,
-      "insert",
-      "Search field accepts normal text"
+      "command",
+      "Enter submits and returns to command mode"
+    );
+    Assert.ok(!bar.hidden);
+    EventUtils.synthesizeKey("/");
+    await TestUtils.waitForCondition(
+      () => document.activeElement === bar._findField
     );
     EventUtils.synthesizeKey("KEY_Escape");
     Assert.ok(bar.hidden, "Escape closes page search");

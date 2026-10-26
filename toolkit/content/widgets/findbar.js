@@ -730,6 +730,7 @@
      *                   otherwise.
      */
     open(mode) {
+      this._keepFindbarUnfocused = false;
       if (mode != undefined) {
         this.findMode = mode;
       }
@@ -1232,7 +1233,7 @@
         this._find(this._findField.value);
       } else {
         this._findAgain(findPrevious);
-        if (this._useModalHighlight) {
+        if (this._useModalHighlight && !this._keepFindbarUnfocused) {
           this.open();
           this._findField.focus();
         }
@@ -1294,7 +1295,7 @@
     onFindResult(data) {
       if (data.result == Ci.nsITypeAheadFind.FIND_NOTFOUND) {
         // If an explicit Find Again command fails, re-open the toolbar.
-        if (data.storeResult && this.open()) {
+        if (data.storeResult && !this._keepFindbarUnfocused && this.open()) {
           this._findField.select();
           this._findField.focus();
         }

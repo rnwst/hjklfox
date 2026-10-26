@@ -78,6 +78,9 @@ export class FindBarChild extends JSWindowActorChild {
   }
 
   onKeypress(event) {
+    if (Services.prefs.getBoolPref("browser.modal.enabled", false)) {
+      return null;
+    }
     if (!this.inPassThrough && this.eventMatchesFindShortcut(event)) {
       return this.FindBarContent.start(event);
     }

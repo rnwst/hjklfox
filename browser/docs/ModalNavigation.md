@@ -8,9 +8,9 @@ fork choices. There is no command prompt.
 
 ## Modes and focus
 
-Each browser window owns one active interaction mode: command, insert, or address
-bar. Switching between existing tabs returns to command mode; neither page
-editing nor address/find-field focus is restored from a tab. Opening a new tab
+Each browser window owns one active interaction mode: command, insert, address
+bar, or page search. Switching between existing tabs returns to command mode;
+neither page editing nor address/find-field focus is restored from a tab. Opening a new tab
 with Ctrl-t can focus its address bar for a new navigation, but revisiting that
 tab does not restore address mode. Navigating to a new document also returns to
 command mode. Page autofocus does not enter insert mode. Clicking or tabbing into
@@ -23,6 +23,7 @@ handlers. Unmatched modified shortcuts and ordinary Tab navigation within pages
 remain available. In insert mode, page input works normally. Address-bar focus enters
 its own mode, with normal text editing and the native blue focus border; it never
 applies the green insert-mode toolbar tint.
+The page-find field likewise uses a separate search mode with no green toolbar fill.
 
 Escape cancels a key sequence or link hints, or leaves insert mode and blurs the
 page editor. Browser menus, fullscreen, pointer lock, and IME composition retain
@@ -32,7 +33,8 @@ without navigating. Unfinished text is retained for Space-e to resume; an empty
 cancelled query restores the current page's address.
 
 Tab and Shift-Tab in the address bar keep focus and the query there; use Escape
-to return to page command mode. Tab in the page-find field returns to the page.
+to return to page command mode. Tab and Shift-Tab also stay in the page-find field;
+Enter submits and defocuses it, while Escape cancels and hides it.
 Toolbar buttons, tab titles, and new-tab buttons cannot take focus through
 Tab, mouse clicks, or programmatic focus. The address and find fields remain
 available through their explicit commands or direct interaction, but are skipped
@@ -56,8 +58,8 @@ colors, the tint is omitted.
 | `Ctrl-o`, `Ctrl-i` | History back or forward |
 | `gw` | Follow a link or activate a button by its letter label |
 | `gW` | Open a visible link in a new tab by its letter label |
-| `/` | Open page search |
-| `n`, `N` | Next or previous search result |
+| `/` | Edit a page-search query |
+| `n`, `N` | Next or previous submitted search result |
 | `i` | Enter insert mode |
 | `Esc` | Cancel or return to command mode |
 | `Space f` | Fuzzy destinations (history and bookmarks) |
@@ -93,6 +95,25 @@ Control, such as `C-d` or `Space f`.
 in command mode. Command identifiers and defaults are in `Keymap.sys.mjs`;
 unknown command identifiers are ignored. Escape remains the fixed cancellation
 key. Avoid assigning a complete command to a prefix used by longer sequences.
+
+## Page search
+
+Press `/` in command mode to edit a search. Typing does not search or scroll the
+page. Enter submits the term and returns focus to the page in command mode,
+leaving the search bar visible. Use `n` and `N` to move to the next or previous
+match. Repeated Enter in command mode does not advance results. The native
+previous/next buttons are hidden in modal navigation.
+
+Tab and Shift-Tab keep focus in the search field. Search-option access keys such
+as Alt-a (Highlight All) work only while the search field is focused. The options
+are disabled and greyed out outside search mode; refocusing the field enables them.
+Escape while editing cancels the search, hides the bar, and clears highlighting,
+including in other frames
+and PDFs. Highlighting is visible only while the search bar is visible. Escape
+in command mode leaves the bar alone; press `/` then Escape to close it.
+Tab-manipulation shortcuts such as Ctrl-t can still leave search mode.
+In insert mode, `/` is passed to the page normally and does not open Firefox's
+find bar.
 
 ## Address-bar navigation
 
@@ -219,6 +240,8 @@ usability with screen readers still require manual validation.
 - `ModalUrlbar.sys.mjs` adds the local provider and keyboard controls to the native
   URL bar. `FuzzySearch.sys.mjs` contains the matching/ranking helpers;
   `ModalEngines.sys.mjs` seeds default aliases through SearchService.
+- `ModalFind.sys.mjs` defers native find events until Enter, keeps Enter from
+  repeating the search, and returns focus to the page while keeping the bar visible.
 - `ModalParent.sys.mjs` accepts focus/lifecycle messages only from the selected
   tab's current documents.
 - `ModalChild.sys.mjs` handles page focus, scrolling, and anonymous-content

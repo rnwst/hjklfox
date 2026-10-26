@@ -18,19 +18,25 @@ handoff is not a roadmap.
 
 ## Behavioral principles
 
-- Distinguish **command**, **insert**, and **address-bar** interaction modes.
+- Distinguish **command**, **insert**, **address-bar**, and **page-search** modes.
   Command mode consumes unbound printable keys before websites see them. Explicit
   editing focus enters insert mode; unsolicited page autofocus must not.
 - Insert mode uses a prominent theme-aware green toolbar fill. Address-bar mode uses
   native address-bar focus styling and never the green tint. Do not add a visible
   mode text badge.
-- Tab switching must not resurrect a tab's old insert or address mode, including
-  Firefox's native per-tab address/find-field focus memories. Completing a page
+- Tab switching must not resurrect a tab's old insert, address, or search mode,
+  including Firefox's native per-tab address/find-field focus memories. Completing a page
   load must not undo a mode deliberately selected while loading.
 - Keep navigation toolbar and tab-strip controls unfocusable. Address and find
   fields allow intentional editing and are skipped by webpage Tab traversal.
   Tab and Shift-Tab stay in the address bar; Escape returns to page command mode.
   Preserve webpage Tab navigation.
+- Page-search input is a draft until Enter submits it. Repeated Enter must not
+  advance results; `n` and `N` navigate after Enter returns to command mode with
+  the bar still visible. Tab and Shift-Tab stay in the search field. Escape from
+  search mode cancels, hides the bar, and clears highlighting; command-mode Escape
+  leaves the bar alone. Highlights require a visible search bar. Native type-ahead
+  find must not consume page keys in insert mode.
 - One Escape leaves address-bar editing, including its results/engine picker,
   without navigating. Keep the existing text available for editing; restore the
   current address when cancelling an empty query. Preserve native IME and
@@ -58,6 +64,8 @@ The implementation is isolated in `browser/components/modal/`:
   frame-local focus/scrolling, and anonymous-content hint overlays.
 - `ModalUrlbar.sys.mjs`: native URL-bar adapter and local result provider.
   `FuzzySearch.sys.mjs` handles matching; `ModalEngines.sys.mjs` seeds aliases.
+- `ModalFind.sys.mjs`: Enter-submitted page search using the native find bar and
+  finder. Enter leaves the bar visible; cancellation uses native highlight cleanup.
 - `SimplifiedChrome.sys.mjs`, component CSS, and `browser/modal.ftl`: browser
   presentation and localization.
 
@@ -65,12 +73,15 @@ The implementation is isolated in `browser/components/modal/`:
 or explicit picker state; null leaves ordinary URL-bar handling active, while
 engine-alias offers still use the shared engine picker provider. Do not conflate
 these states.
+Interaction mode `search` means page finding, not an address-bar engine scope.
 
 Keep upstream edits concentrated in window startup (`browser-init.js`), actor
 registration (`DesktopActorRegistry.sys.mjs`), packaging, preferences
 (`firefox.js`), tab-switch focus memory (`Tabbrowser.sys.mjs`), engine-result
 rendering (`UrlbarView.mjs`), and the existing key/menu definitions. Avoid unrelated
 formatting, renames, or copies of upstream services: those increase future merge work.
+The native find bar supports keeping focus on the page after submission, and
+`FindBarChild.sys.mjs` bypasses type-ahead shortcuts while modal navigation is enabled.
 
 Important invariants established by regressions:
 

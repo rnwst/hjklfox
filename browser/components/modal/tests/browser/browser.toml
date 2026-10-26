@@ -1,5 +1,11 @@
 [DEFAULT]
-support-files = ["page.html", "loading.sjs", "buttons.html"]
+support-files = [
+  "page.html",
+  "loading.sjs",
+  "buttons.html",
+  "search.html",
+  "!/toolkit/components/pdfjs/test/file_pdfjs_test.pdf",
+]
 prefs = ["browser.modal.enabled=true", "general.smoothScroll=false"]
 
 ["browser_modal.js"]
@@ -14,5 +20,7 @@ prefs = ["browser.modal.enabled=true", "general.smoothScroll=false"]
 skip-if = ["os != 'linux'", "headless"]
 
 ["browser_modal_newtab.js"]
+
+["browser_modal_search.js"]
 
 ["browser_modal_urlbar.js"]

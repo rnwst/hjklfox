@@ -206,13 +206,15 @@ add_task(async function intentional_editors_remain_usable() {
       () => document.activeElement === findbar._findField,
       "Slash focuses the find field"
     );
-    info("Leaving the find field with Tab");
+    info("Keeping Tab in the find field");
     EventUtils.synthesizeKey("KEY_Tab");
+    Assert.equal(document.activeElement, findbar._findField);
+    EventUtils.synthesizeKey("KEY_Escape");
     await TestUtils.waitForCondition(() => document.activeElement === browser);
     Assert.equal(
       gModalNavigation.mode,
       "command",
-      "Tab leaves the find field for the page"
+      "Escape leaves the find field for the page"
     );
     Assert.ok(findbar.hidden);
     findbar._findField.focus();
@@ -335,7 +337,7 @@ add_task(async function tab_switches_do_not_restore_find_field_focus() {
         () => document.activeElement === findbar._findField
       );
       await findbar._startFindDeferred?.promise;
-      Assert.equal(gModalNavigation.mode, "insert");
+      Assert.equal(gModalNavigation.mode, "search");
       await BrowserTestUtils.switchTab(gBrowser, other);
       await BrowserTestUtils.switchTab(gBrowser, original);
       Assert.equal(

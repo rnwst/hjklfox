@@ -19,6 +19,13 @@ add_task(function sequences_and_counts() {
   Assert.deepEqual(keys.feed("k"), { command: "scroll.up", count: 1 });
 });
 
+add_task(function page_search_navigation_uses_n_and_N() {
+  const keys = new Keymap();
+  Assert.equal(keys.feed("n").command, "find.next");
+  Assert.equal(keys.feed("N").command, "find.previous");
+  Assert.equal(keys.feed("p"), null);
+});
+
 add_task(function bindings_and_modifiers() {
   const keys = new Keymap({ j: null, "g t": "tab.next", z: "not-a-command" });
   Assert.equal(keys.feed("j"), null);

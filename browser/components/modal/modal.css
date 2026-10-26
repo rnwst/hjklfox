@@ -31,6 +31,10 @@
   -moz-user-focus: normal !important;
 }
 
+:root[modal-mode] findbar :is(.findbar-find-previous, .findbar-find-next) {
+  display: none;
+}
+
 #sidebar-container,
 #sidebar-box,
 #sidebar-splitter,
