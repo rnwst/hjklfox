@@ -19,8 +19,10 @@ handoff is not a roadmap.
 ## Behavioral principles
 
 - Distinguish **command**, **insert**, **address-bar**, and **page-search** modes.
-  Command mode consumes unbound printable keys before websites see them. Explicit
-  editing focus enters insert mode; unsolicited page autofocus must not.
+  Pages receive keyboard events only in insert mode, excluding Escape. Keep
+  native browser shortcuts and Tab/Enter defaults without exposing their keys to
+  page scripts. Explicit editing focus enters insert mode; unsolicited page
+  autofocus must not. Mode-changing keys must not leak their repeats or releases.
 - Insert mode uses a prominent theme-aware green toolbar fill. Address-bar mode uses
   native address-bar focus styling and never the green tint. Do not add a visible
   mode text badge.
@@ -61,7 +63,8 @@ The implementation is isolated in `browser/components/modal/`:
 - `ModalNavigation.sys.mjs`: window interaction state, keyboard dispatch, and hint
   coordination. `Keymap.sys.mjs` owns bindings, sequences/counts, and hint labels.
 - `ModalParent.sys.mjs` / `ModalChild.sys.mjs`: selected-document validation,
-  frame-local focus/scrolling, and anonymous-content hint overlays.
+  mode-aware keyboard filtering, frame-local focus/scrolling, and anonymous-content
+  hint overlays. Stop page propagation without cancelling native Tab/Enter defaults.
 - `ModalUrlbar.sys.mjs`: native URL-bar adapter and local result provider.
   `FuzzySearch.sys.mjs` handles matching; `ModalEngines.sys.mjs` seeds aliases.
 - `ModalFind.sys.mjs`: Enter-submitted page search using the native find bar and

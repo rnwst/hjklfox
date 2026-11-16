@@ -42,6 +42,7 @@ export class ModalNavigation {
     this.keyPopup = new ModalKeyPopup(win);
     this.mode = "command";
     this.suppressed = new Set();
+    this.pageBlockedKeys = new Set();
     this.generation = 0;
     this.hints = null;
     this.tabFocusPending = false;
@@ -225,6 +226,9 @@ export class ModalNavigation {
     this.resetKeys();
     this.mode = mode;
     this.find.updateOptions();
+    for (const actor of this.actors()) {
+      send(actor, "Modal:Mode", { insert: mode === "insert" });
+    }
     this.documentId =
       this.window.gBrowser.selectedBrowser.browsingContext.currentWindowGlobal?.innerWindowId;
     this.tabFocusPending = false;
@@ -377,6 +381,7 @@ export class ModalNavigation {
         this.cancelHints();
         this.resetKeys();
         this.suppressed.clear();
+        this.pageBlockedKeys.clear();
       }
       return;
     }
@@ -386,18 +391,15 @@ export class ModalNavigation {
       this.handleChromeFocus(event, active);
       return;
     }
-    if (!event.isTrusted || event.isComposing) {
+    if (
+      !event.isTrusted ||
+      event.isComposing ||
+      this.blockPageKeyTail(event, inContent)
+    ) {
       return;
     }
-    const code = event.code || event.key;
     if (event.type !== "keydown") {
-      if (this.suppressed.has(code)) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-      }
-      if (event.type === "keyup") {
-        this.suppressed.delete(code);
-      }
+      this.finishKey(event);
       return;
     }
     if (["Shift", "Control", "Alt", "Meta", "AltGraph"].includes(event.key)) {
@@ -490,6 +492,36 @@ export class ModalNavigation {
     this.suppressed.add(event.code || event.key);
     event.preventDefault();
     event.stopImmediatePropagation();
+  }
+
+  finishKey(event) {
+    const code = event.code || event.key;
+    if (this.suppressed.has(code)) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+    if (event.type === "keyup") {
+      this.suppressed.delete(code);
+    }
+  }
+
+  blockPageKeyTail(event, inContent) {
+    const code = event.code || event.key;
+    const blocked =
+      inContent && this.mode === "insert" && this.pageBlockedKeys.has(code);
+    if (event.type === "keydown" && this.mode !== "insert") {
+      this.pageBlockedKeys.add(code);
+    } else if (event.type === "keyup") {
+      this.pageBlockedKeys.delete(code);
+      if (blocked) {
+        this.suppressed.delete(code);
+      }
+    }
+    if (blocked) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+    return blocked;
   }
 
   resetKeys() {

@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Modal keyboard isolation test</title>
+<a id="link" href="#destination">Destination</a>
+<button id="button">Activate</button>
+<input id="editor" aria-label="Editor">
+<div id="destination">Destination reached</div>
+<script>
+  window.keyEvents = [];
+  window.clicks = 0;
+  window.blockKeys = false;
+  for (const type of ["keydown", "keypress", "keyup"]) {
+    window.addEventListener(type, event => {
+      window.keyEvents.push({ type, key: event.key, repeat: event.repeat });
+      if (window.blockKeys) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    }, true);
+  }
+  document.getElementById("button").addEventListener("click", () => window.clicks++);
+</script>

@@ -18,9 +18,13 @@ an editable field does. Pressing `i` enables insert mode and restores the last
 editor in the focused frame if it is still present.
 An explicitly focused control takes precedence over restoring the last editor.
 
-In command mode, unbound printable keys are swallowed before reaching page
-handlers. Unmatched modified shortcuts and ordinary Tab navigation within pages
-remain available. In insert mode, page input works normally. Address-bar focus enters
+Outside insert mode, pages receive no keyboard press, repeat, or release events,
+including modifier keys and function keys. Firefox's own shortcuts remain
+available. Tab can move focus and Enter can activate a link or button without
+exposing the keys to page scripts; scripts can still respond to the resulting
+focus changes and clicks. In insert mode, page input works normally, except that
+Escape is withheld from the page. A key that starts outside insert mode cannot
+leak its release or repeat into a newly focused editor. Address-bar focus enters
 its own mode, with normal text editing and the native blue focus border; it never
 applies the green insert-mode toolbar tint.
 The page-find field likewise uses a separate search mode with no green toolbar fill.
@@ -244,8 +248,9 @@ usability with screen readers still require manual validation.
   repeating the search, and returns focus to the page while keeping the bar visible.
 - `ModalParent.sys.mjs` accepts focus/lifecycle messages only from the selected
   tab's current documents.
-- `ModalChild.sys.mjs` handles page focus, scrolling, and anonymous-content
-  overlays. Hints are not inserted into the page's ordinary DOM. Activation uses
+- `ModalChild.sys.mjs` filters page keyboard events, handles focus and scrolling,
+  and draws anonymous-content overlays. Hints are not inserted into the page's
+  ordinary DOM. Activation uses
   Firefox's mouse-event synthesis, preserving the document's link behavior.
 
 The runtime integration points are the browser-window startup hook in

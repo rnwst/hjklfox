@@ -20,6 +20,18 @@ export class ModalChild extends JSWindowActorChild {
   refreshFrame = null;
   mutationObserver = null;
   needsRetarget = false;
+  insertMode = false;
+
+  actorCreated() {
+    this.sendAsyncMessage("Modal:GetMode");
+  }
+
+  handleKeyboardEvent(event) {
+    if (!this.insertMode || event.key === "Escape") {
+      // Keep native defaults and system-group handlers, but not page listeners.
+      event.stopImmediatePropagation();
+    }
+  }
 
   isEditable(element) {
     return (
@@ -48,6 +60,11 @@ export class ModalChild extends JSWindowActorChild {
     }
     const target = event.composedPath()[0];
     switch (event.type) {
+      case "keydown":
+      case "keypress":
+      case "keyup":
+        this.handleKeyboardEvent(event);
+        break;
       case "pointerdown":
         this.pointerFocusPending = event.button === 0;
         this.contentWindow.setTimeout(() => {
@@ -96,6 +113,9 @@ export class ModalChild extends JSWindowActorChild {
 
   receiveMessage({ name, data }) {
     switch (name) {
+      case "Modal:Mode":
+        this.insertMode = data.insert;
+        break;
       case "Modal:KeyBackdrop":
         this.setKeyBackdrop(data);
         break;

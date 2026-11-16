@@ -22,10 +22,20 @@ export class ModalParent extends JSWindowActorParent {
     }
     const browser = this.browsingContext.top.embedderElement;
     const win = browser?.documentGlobal;
+    const controller = win?.gModalNavigation;
+    if (name === "Modal:GetMode") {
+      this.sendAsyncMessage("Modal:Mode", {
+        insert:
+          browser === win?.gBrowser?.selectedBrowser &&
+          this.manager === this.browsingContext.currentWindowGlobal &&
+          !!controller?.enabled &&
+          controller.mode === "insert",
+      });
+      return;
+    }
     if (browser !== win?.gBrowser?.selectedBrowser) {
       return;
     }
-    const controller = win?.gModalNavigation;
     if (!controller?.enabled) {
       return;
     }

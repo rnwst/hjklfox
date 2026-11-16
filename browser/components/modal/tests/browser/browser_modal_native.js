@@ -527,6 +527,82 @@ add_task(
   }
 );
 
+add_task(
+  { skip_if: () => !xdotool },
+  async function native_page_keyboard_isolation() {
+    const url = NATIVE_PAGE.replace("buttons.html", "keyboard.html");
+    await BrowserTestUtils.withNewTab(url, async browser => {
+      await TestUtils.waitForCondition(() =>
+        document.title.includes("Modal keyboard isolation test")
+      );
+      await focusNativeBrowser(browser, "Modal keyboard isolation test");
+      await SpecialPowers.spawn(browser, [], () => {
+        content.wrappedJSObject.blockKeys = true;
+      });
+      await nativeKey("ctrl+shift+F8", "Control");
+      await nativeKey("alt+x", "Alt");
+      await nativeKey("Tab", "Tab");
+      await SpecialPowers.spawn(browser, [], async () => {
+        await ContentTaskUtils.waitForCondition(
+          () => content.document.activeElement.id === "link"
+        );
+      });
+      await nativeKey("Return", "Enter");
+      await SpecialPowers.spawn(browser, [], async () => {
+        await ContentTaskUtils.waitForCondition(
+          () => content.location.hash === "#destination"
+        );
+        Assert.deepEqual(
+          content.wrappedJSObject.keyEvents,
+          [],
+          "Native Tab and Enter work without delivering keys to the page"
+        );
+        content.wrappedJSObject.blockKeys = false;
+        content.document.getElementById("button").focus();
+      });
+      await nativeKey("i", "i");
+      await nativeKey("x", "x");
+      await nativeKey("Escape", "Escape");
+      await nativeKey("F8", "F8");
+      await SpecialPowers.spawn(browser, [], () => {
+        Assert.deepEqual(
+          content.wrappedJSObject.keyEvents.map(
+            event => `${event.type}:${event.key}`
+          ),
+          ["keydown:x", "keypress:x", "keyup:x"],
+          "Only insert-mode input reaches the page"
+        );
+      });
+      const { TabStateFlusher } = ChromeUtils.importESModule(
+        "moz-src:///browser/components/sessionstore/TabStateFlusher.sys.mjs"
+      );
+      const closedURL = `${url}?closed`;
+      const tab = await BrowserTestUtils.openNewForegroundTab(
+        gBrowser,
+        closedURL
+      );
+      await TabStateFlusher.flush(tab.linkedBrowser);
+      BrowserTestUtils.removeTab(tab);
+      browser.focus();
+      await SpecialPowers.spawn(browser, [], () => {
+        content.wrappedJSObject.keyEvents = [];
+        content.wrappedJSObject.blockKeys = true;
+      });
+      const restored = BrowserTestUtils.waitForNewTab(gBrowser, closedURL);
+      await nativeKey("ctrl+shift+t", "Control");
+      const reopened = await restored;
+      await SpecialPowers.spawn(browser, [], () => {
+        Assert.deepEqual(
+          content.wrappedJSObject.keyEvents,
+          [],
+          "Native Ctrl-Shift-T cannot be intercepted by the page"
+        );
+      });
+      BrowserTestUtils.removeTab(reopened);
+    });
+  }
+);
+
 add_task({ skip_if: () => !xdotool }, async function native_keyboard_routing() {
   await BrowserTestUtils.withNewTab(NATIVE_PAGE, async browser => {
     await TestUtils.waitForCondition(() =>

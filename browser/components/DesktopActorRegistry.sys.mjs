@@ -98,6 +98,9 @@ let JSWINDOWACTORS = {
     child: {
       esModuleURI: "moz-src:///browser/components/modal/ModalChild.sys.mjs",
       events: {
+        keydown: { capture: true },
+        keypress: { capture: true },
+        keyup: { capture: true },
         pointerdown: { capture: true },
         focus: { capture: true },
         pageshow: {},
