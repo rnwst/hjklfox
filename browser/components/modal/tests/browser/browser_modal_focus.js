@@ -86,7 +86,7 @@ add_task(async function navigation_controls_reject_mouse_and_script_focus() {
     EventUtils.synthesizeKey("g");
     EventUtils.synthesizeKey("w");
     await TestUtils.waitForCondition(
-      () => gModalNavigation.hints?.targets.length === 2
+      () => gModalNavigation.hints?.targets.length === 3
     );
     EventUtils.synthesizeKey("KEY_Escape");
   });

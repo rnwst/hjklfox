@@ -5,6 +5,7 @@ support-files = [
   "buttons.html",
   "search.html",
   "keyboard.html",
+  "editors.html",
   "!/toolkit/components/pdfjs/test/file_pdfjs_test.pdf",
 ]
 prefs = ["browser.modal.enabled=true", "general.smoothScroll=false"]
@@ -13,16 +14,21 @@ prefs = ["browser.modal.enabled=true", "general.smoothScroll=false"]
 
 ["browser_modal_buttons.js"]
 
+["browser_modal_editors.js"]
+
 ["browser_modal_focus.js"]
 
 ["browser_modal_fullscreen.js"]
 
-["browser_modal_keyboard.js"]
-
 ["browser_modal_key_popup.js"]
 
+["browser_modal_keyboard.js"]
+
 ["browser_modal_native.js"]
-skip-if = ["os != 'linux'", "headless"]
+skip-if = [
+  "headless",
+  "os != 'linux'",
+]
 
 ["browser_modal_newtab.js"]
 

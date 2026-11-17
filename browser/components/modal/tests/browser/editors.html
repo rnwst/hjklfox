@@ -1,0 +1,40 @@
+<!doctype html>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<meta charset="utf-8">
+<title>Editable hint targets</title>
+<style>
+  body { display: grid; grid-template-columns: repeat(3, 180px); gap: 8px; }
+  input, textarea, [contenteditable] { box-sizing: border-box; min-height: 24px; max-width: 180px; }
+</style>
+<a id="link" href="#destination">Link</a>
+<button id="button">Button</button>
+<label for="text">Name</label>
+<input id="text">
+<input id="search" type="search" placeholder="Search">
+<input id="password" type="password" value="secret-password">
+<textarea id="textarea" title="Notes"></textarea>
+<div id="rich" contenteditable="true"><span contenteditable="true">Private draft</span></div>
+<div id="empty" contenteditable></div>
+<div id="plain" contenteditable="plaintext-only"></div>
+<div id="outer" contenteditable="true">Outer<div contenteditable="false">Not editable<div id="nested" contenteditable="true" tabindex="0">Nested</div></div></div>
+<input id="readonly" readonly>
+<textarea id="readonly-area" readonly></textarea>
+<input id="disabled" disabled>
+<fieldset disabled><input id="fieldset-disabled"></fieldset>
+<div inert><input id="inert"></div>
+<input id="invisible" style="visibility: hidden">
+<input id="hidden" type="hidden">
+<input id="checkbox" type="checkbox">
+<input id="radio" type="radio">
+<input id="submit" type="submit">
+<input id="input-button" type="button" value="Action">
+<input id="reset" type="reset">
+<input id="file" type="file">
+<input id="range" type="range">
+<input id="color" type="color">
+<input id="image" type="image" alt="Image button">
+<div contenteditable="false">Not an editor</div>
+<input readonly contenteditable="true">
+<input type="checkbox" contenteditable="true">

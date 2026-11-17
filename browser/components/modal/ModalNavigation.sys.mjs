@@ -682,11 +682,12 @@ export class ModalNavigation {
     for (const actor of session.actors) {
       actor.trackHints(this, generation);
     }
-    const [title, buttonName] = await Promise.all([
+    const [title, buttonName, editorName] = await Promise.all([
       this.window.document.l10n.formatValue(
         newTab ? "modal-hints-new-tab-title" : "modal-hints-title"
       ),
       this.window.document.l10n.formatValue("modal-hint-button"),
+      this.window.document.l10n.formatValue("modal-hint-editor"),
     ]);
     if (generation !== this.generation) {
       return;
@@ -721,6 +722,7 @@ export class ModalNavigation {
           labels: frameLabels,
           title,
           buttonName,
+          editorName,
         })
       ) {
         frameLabels.forEach((label, index) =>

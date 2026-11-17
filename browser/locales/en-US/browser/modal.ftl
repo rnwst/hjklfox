@@ -9,6 +9,7 @@ modal-mode-search = Page search
 modal-hints-title = Page hints
 modal-hints-new-tab-title = Open a link in a new tab
 modal-hint-button = Button
+modal-hint-editor = Editable field
 # $count is the number of available page hints; $prefix is the letters typed.
 modal-mode-hints = Hints ({ $count }): { $prefix }
 # $count is the number of available link hints; $prefix is the letters typed.

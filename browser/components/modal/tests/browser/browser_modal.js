@@ -269,12 +269,12 @@ add_task(async function cross_origin_hints_and_cancellation() {
     EventUtils.synthesizeKey("g");
     EventUtils.synthesizeKey("w");
     await TestUtils.waitForCondition(
-      () => gModalNavigation.hints?.targets.length === 4
+      () => gModalNavigation.hints?.targets.length === 6
     );
     const targets = gModalNavigation.hints.targets;
     Assert.equal(
       new Set(targets.map(target => target.label)).size,
-      4,
+      6,
       "Labels are unique across frames"
     );
     await SpecialPowers.spawn(frame, [], async () => {
@@ -282,7 +282,7 @@ add_task(async function cross_origin_hints_and_cancellation() {
       await ContentTaskUtils.waitForCondition(() =>
         actor.overlay?.root.querySelector(".hint")
       );
-      const label = actor.overlay.root.querySelector(".hint");
+      const label = actor.overlay.root.querySelector('.hint[data-index="1"]');
       await ContentTaskUtils.waitForCondition(
         () => content.getComputedStyle(label).position === "fixed"
       );
@@ -316,10 +316,10 @@ add_task(async function cross_origin_hints_and_cancellation() {
     EventUtils.synthesizeKey("g");
     EventUtils.synthesizeKey("w");
     await TestUtils.waitForCondition(
-      () => gModalNavigation.hints?.targets.length === 4
+      () => gModalNavigation.hints?.targets.length === 6
     );
     const target = gModalNavigation.hints.targets.find(
-      item => item.actor.browsingContext === frame && item.index === 1
+      item => item.actor.browsingContext === frame && item.index === 2
     );
     EventUtils.synthesizeKey(target.label);
     await SpecialPowers.spawn(frame, [], async () => {
@@ -429,13 +429,13 @@ add_task(async function tabs_and_hints() {
       EventUtils.synthesizeKey("g");
       EventUtils.synthesizeKey("w");
       await TestUtils.waitForCondition(
-        () => gModalNavigation.hints?.targets.length === 2
+        () => gModalNavigation.hints?.targets.length === 3
       );
       const loaded = BrowserTestUtils.waitForLocationChange(
         gBrowser,
         `${PAGE}#two`
       );
-      EventUtils.synthesizeKey("s");
+      EventUtils.synthesizeKey(gModalNavigation.hints.targets[2].label);
       await loaded;
       Assert.equal(gModalNavigation.hints, null);
     } finally {
@@ -607,7 +607,7 @@ add_task(async function hints_survive_scroll_and_clear_on_disable() {
     EventUtils.synthesizeKey("g");
     EventUtils.synthesizeKey("w");
     await TestUtils.waitForCondition(
-      () => gModalNavigation.hints?.targets.length === 2
+      () => gModalNavigation.hints?.targets.length === 3
     );
     await SpecialPowers.spawn(browser, [], async () => {
       const scrolled = ContentTaskUtils.waitForEvent(content, "scroll");
@@ -621,7 +621,7 @@ add_task(async function hints_survive_scroll_and_clear_on_disable() {
       await scrolled;
     });
     await TestUtils.waitForCondition(
-      () => gModalNavigation.hints?.targets.length === 2
+      () => gModalNavigation.hints?.targets.length === 3
     );
     await SpecialPowers.spawn(browser, [], async () => {
       const actor = content.windowGlobalChild.getActor("Modal");
@@ -659,14 +659,14 @@ add_task(async function removing_a_frame_keeps_other_hints() {
     EventUtils.synthesizeKey("g");
     EventUtils.synthesizeKey("w");
     await TestUtils.waitForCondition(
-      () => gModalNavigation.hints?.targets.length === 4
+      () => gModalNavigation.hints?.targets.length === 6
     );
     const session = gModalNavigation.hints;
     await SpecialPowers.spawn(browser, [], () =>
       content.document.querySelector("iframe").remove()
     );
     await TestUtils.waitForCondition(
-      () => gModalNavigation.hints?.targets.length === 2
+      () => gModalNavigation.hints?.targets.length === 3
     );
     Assert.equal(
       gModalNavigation.hints,

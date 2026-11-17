@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const HINT_TARGETS = "a[href], button";
+const HINT_TARGETS = "a[href], button, input, textarea, [contenteditable]";
 
 /** Frame-local editing, scrolling, and anonymous page-hint overlays. */
 export class ModalChild extends JSWindowActorChild {
@@ -34,23 +34,43 @@ export class ModalChild extends JSWindowActorChild {
   }
 
   isEditable(element) {
+    if (!element?.matches?.("textarea, input")) {
+      return !!element?.isContentEditable;
+    }
     return (
-      element?.isContentEditable ||
-      (element?.matches?.("textarea, input") &&
-        !element.readOnly &&
-        !element.disabled &&
-        ![
-          "button",
-          "checkbox",
-          "radio",
-          "submit",
-          "reset",
-          "file",
-          "image",
-          "hidden",
-          "range",
-          "color",
-        ].includes(element.type))
+      !element.readOnly &&
+      !element.disabled &&
+      ![
+        "button",
+        "checkbox",
+        "radio",
+        "submit",
+        "reset",
+        "file",
+        "image",
+        "hidden",
+        "range",
+        "color",
+      ].includes(element.type)
+    );
+  }
+
+  isHintTarget(element) {
+    if (!element) {
+      return false;
+    }
+    if (element.matches("a[href]")) {
+      return true;
+    }
+    if (this.newTabHint) {
+      return false;
+    }
+    if (element.matches("input, textarea")) {
+      return this.isEditable(element);
+    }
+    return (
+      element.matches("button") ||
+      (element.isContentEditable && !element.parentElement?.isContentEditable)
     );
   }
 
@@ -171,7 +191,7 @@ export class ModalChild extends JSWindowActorChild {
         return this.targets.length;
       case "Modal:Show":
         if (data.generation === this.generation) {
-          this.show(data.labels, data.title, data.buttonName);
+          this.show(data.labels, data.title, data.buttonName, data.editorName);
         }
         break;
       case "Modal:Filter":
@@ -210,6 +230,7 @@ export class ModalChild extends JSWindowActorChild {
   point(element) {
     if (
       !element?.isConnected ||
+      !this.isHintTarget(element) ||
       element.matches(":disabled") ||
       element.getAttribute("aria-disabled") === "true" ||
       element.closest("[inert]") ||
@@ -288,10 +309,21 @@ export class ModalChild extends JSWindowActorChild {
     if (element.matches("a[href]")) {
       return `link:${this.linkURL(element)}`;
     }
-    return element.id ? `button:${element.id}` : null;
+    return element.id ? `${element.localName}:${element.id}` : null;
   }
 
   targetName(target) {
+    if (!target.matches("a[href], button")) {
+      return (
+        target.getAttribute("aria-label") ||
+        Array.from(target.labels || [], label => label.textContent.trim())
+          .filter(Boolean)
+          .join(" ") ||
+        target.getAttribute("placeholder") ||
+        target.getAttribute("title") ||
+        this.editorName
+      ).slice(0, 160);
+    }
     const fallback = target.matches("a[href]")
       ? this.linkURL(target)
       : this.buttonName;
@@ -304,11 +336,12 @@ export class ModalChild extends JSWindowActorChild {
     ).slice(0, 160);
   }
 
-  show(labels, title, buttonName) {
+  show(labels, title, buttonName, editorName) {
     if (!labels.length) {
       return;
     }
     this.buttonName = buttonName;
+    this.editorName = editorName;
     const positions = this.targets.map(target => this.point(target));
     this.overlayDocument = this.document;
     this.overlay = this.document.insertAnonymousContent();
