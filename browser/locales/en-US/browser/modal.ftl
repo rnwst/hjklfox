@@ -15,11 +15,11 @@ modal-mode-hints = Hints ({ $count }): { $prefix }
 # $count is the number of available link hints; $prefix is the letters typed.
 modal-mode-hints-new-tab = New-tab hints ({ $count }): { $prefix }
 
-modal-urlbar-destinations = Fuzzy history and bookmarks. Control-N and Control-P select results. Enter opens the selected destination.
-modal-urlbar-history = Fuzzy history search. Control-N and Control-P select results.
-modal-urlbar-bookmarks = Fuzzy bookmark search. Control-N and Control-P select results.
-modal-urlbar-tabs = Fuzzy tab search. Control-N and Control-P select a tab.
-modal-urlbar-engines = Choose a search engine. Type to filter, Control-N and Control-P select, Enter confirms. An alias followed by a space starts a new query. Escape cancels.
+modal-urlbar-destinations = Enter an address or search the web. Suggestions also include history and bookmarks. Control-N and Control-P select suggestions. Enter accepts the selected suggestion or submits your input.
+modal-urlbar-history = Find a match in history. Control-N and Control-P select suggestions. Enter opens the selected or first match.
+modal-urlbar-bookmarks = Find a bookmark. Control-N and Control-P select suggestions. Enter opens the selected or first match.
+modal-urlbar-tabs = Find an open tab. Control-N and Control-P select suggestions. Enter switches to the selected or first matching tab.
+modal-urlbar-engines = Choose a search engine without clearing your query. Control-N and Control-P select an engine, Enter confirms. Typing edits your query. Control-Space cancels engine selection. Escape leaves the address bar.
 
 modal-newtab-title = Keyboard shortcut reference
 modal-newtab-intro = Press Escape to leave the address bar, then try these command-mode shortcuts. Click a text field or enter insert mode to type normally. Escape returns to command mode.
@@ -61,12 +61,12 @@ modal-shortcut-history-forward = Forward in history
 modal-shortcut-hint-follow = Follow a link or activate a button using its label
 modal-shortcut-hint-follow-new-tab = Open a link in a new tab using its label
 modal-shortcut-mode-insert = Enter insert mode to type on the page
-modal-shortcut-urlbar-destinations = Find a destination in history and bookmarks
-modal-shortcut-urlbar-edit = Edit the current address or resume your query
-modal-shortcut-urlbar-history = Search history
-modal-shortcut-urlbar-bookmarks = Search bookmarks
-modal-shortcut-urlbar-tabs = Find an open tab
-modal-shortcut-urlbar-search = Search the web
+modal-shortcut-urlbar-destinations = Clear and focus the address bar
+modal-shortcut-urlbar-edit = Focus the address bar without clearing its text
+modal-shortcut-urlbar-history = Start a new history search in the address bar
+modal-shortcut-urlbar-bookmarks = Start a new bookmark search in the address bar
+modal-shortcut-urlbar-tabs = Start a new open-tab search in the address bar
+modal-shortcut-urlbar-search = Start a new search with the default search engine
 modal-shortcut-address-next = Select the next suggestion
 modal-shortcut-address-previous = Select the previous suggestion
-modal-shortcut-address-engines = Choose or clear a search engine
+modal-shortcut-address-engines = Open or close the engine picker without clearing your query

@@ -73,11 +73,11 @@ add_task(
           await TestUtils.waitForCondition(
             () =>
               gURLBar.value === "nativepick" &&
-              [0, 1].every(index =>
+              [1, 2].every(index =>
                 urls.includes(gURLBar.view.getResultAtIndex(index)?.payload.url)
               )
           );
-          gURLBar.view.selectedRowIndex = 0;
+          gURLBar.view.selectedRowIndex = 1;
           const first = gURLBar.view.selectedResult.payload.url;
           await nativeKey("ctrl+n", "Control");
           Assert.notEqual(
@@ -105,12 +105,8 @@ add_task(
           await TestUtils.waitForCondition(
             () => gModalNavigation.urlbar.mode === "engines"
           );
-          await xdo("type", "--clearmodifiers", "--delay", "1", "Perplexity");
-          await TestUtils.waitForCondition(
-            () =>
-              gURLBar.view.getResultAtIndex(0)?.payload.engine === "Perplexity"
-          );
-          await nativeKey("Return", "Enter");
+          Assert.equal(gURLBar.value, "quasar query");
+          await nativeChooseEngine("Perplexity");
           await TestUtils.waitForCondition(
             () =>
               gURLBar.searchMode?.engineName === "Perplexity" &&
@@ -181,6 +177,31 @@ async function xdo(...args) {
   const { exitCode } = await process.wait();
   Assert.equal(exitCode, 0, `xdotool ${args.join(" ")}`);
   return output.trim();
+}
+
+async function nativeChooseEngine(name) {
+  const context = await gURLBar.lastQueryContextPromise;
+  const index = context.results.findIndex(
+    result => result.payload.engine === name
+  );
+  Assert.greaterOrEqual(index, 0, `${name} is in the engine picker`);
+  const query = gURLBar.value;
+  gURLBar.view.selectedRowIndex = -1;
+  for (let i = 0; i <= index; i++) {
+    await nativeKey("ctrl+n", "Control");
+    Assert.equal(
+      gURLBar.value,
+      query,
+      "Native engine cycling keeps the query visible"
+    );
+  }
+  await nativeKey("Return", "Enter");
+  await TestUtils.waitForCondition(
+    () =>
+      gURLBar.searchMode?.engineName === name &&
+      !gURLBar.searchMode.isPreview &&
+      gModalNavigation.urlbar.mode !== "engines"
+  );
 }
 
 async function focusNativeBrowser(
@@ -277,7 +298,7 @@ add_task(
 
 add_task(
   { skip_if: () => !xdotool },
-  async function native_engine_cancellation_recovers_search() {
+  async function native_engine_switching_preserves_and_submits_query() {
     await gModalNavigation.urlbar.ready;
     const original = await SearchService.getDefault();
     const local = await SearchService.addUserEngine({
@@ -299,26 +320,27 @@ add_task(
         await nativeKey("space", " ");
         await nativeKey("f", "f");
         await TestUtils.waitForCondition(() => gURLBar.focused);
-        const engine = await SearchService.getEngineByAlias("@d");
-        for (let i = 0; i < 2; i++) {
-          await xdo("type", "--clearmodifiers", "--delay", "1", "@d ");
-          await TestUtils.waitForCondition(
-            () =>
-              gURLBar.searchMode?.engineName === engine.name &&
-              !gURLBar.searchMode.isPreview
-          );
-          await nativeKey("ctrl+space", "Control");
-          await TestUtils.waitForCondition(() => !gURLBar.searchMode);
-          Assert.equal(gModalNavigation.urlbar.mode, null);
-          Assert.equal(
-            document.activeElement,
-            gURLBar.inputField,
-            "Cancelling the engine keeps address focus"
-          );
-          Assert.equal(gURLBar.value, "");
-        }
+        const engine = await SearchService.getEngineByAlias("@b");
+        await xdo("type", "--clearmodifiers", "--delay", "1", "@b ");
+        await TestUtils.waitForCondition(
+          () =>
+            gURLBar.searchMode?.engineName === engine.name &&
+            !gURLBar.searchMode.isPreview
+        );
+        Assert.equal(
+          gURLBar.value,
+          "",
+          "Bing is selected as soon as its alias is followed by a space"
+        );
         await xdo("type", "--clearmodifiers", "--delay", "1", query);
         await TestUtils.waitForCondition(() => gURLBar.value === query);
+        await nativeKey("ctrl+space", "Control");
+        await TestUtils.waitForCondition(
+          () => gModalNavigation.urlbar.mode === "engines"
+        );
+        Assert.equal(gURLBar.searchMode.engineName, engine.name);
+        Assert.equal(gURLBar.value, query);
+        await nativeChooseEngine(local.name);
         const loaded = BrowserTestUtils.browserLoaded(
           browser,
           false,
@@ -329,7 +351,7 @@ add_task(
         Assert.equal(
           browser.currentURI.spec,
           destination,
-          "A native Enter searches normally after cancelling and reselecting an engine"
+          "A native Enter submits the preserved query after switching engines"
         );
       });
     } finally {
@@ -357,8 +379,9 @@ add_task(
       await TestUtils.waitForCondition(() => gURLBar.focused);
       await nativeKey("ctrl+space", "Control");
       await TestUtils.waitForCondition(
-        () => gModalNavigation.urlbar.mode === "engines" && gURLBar.value === ""
+        () => gModalNavigation.urlbar.mode === "engines"
       );
+      await nativeKey("ctrl+a", "Control");
       const query = "native picker query";
       const engine = await SearchService.getEngineByAlias("@d");
       await xdo("type", "--clearmodifiers", "--delay", "1", `@d ${query}`);
@@ -371,7 +394,7 @@ add_task(
       Assert.equal(
         gModalNavigation.urlbar.mode,
         null,
-        "Native alias completion exits engine filtering"
+        "Native alias completion exits the engine picker"
       );
       Assert.equal(document.activeElement, gURLBar.inputField);
       const submitted = BrowserTestUtils.waitForDocLoadAndStopIt(

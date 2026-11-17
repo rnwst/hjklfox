@@ -47,8 +47,10 @@ handoff is not a roadmap.
   disabled/inert state, and the live target before activation. Preserve native
   clicks, user activation, and form behavior.
 - Use native URL-bar results, Places, SearchService, tab operations, and session
-  state. Local pickers must not silently turn an unmatched query into a network
-  search. Respect private-window/container boundaries and explicit user settings.
+  state. Default address-bar entry supports both URLs and web searches alongside
+  fuzzy destinations. Explicit history, bookmark, and tab pickers stay local.
+  Keep the query visible when choosing or changing search engines. Respect
+  private-window/container boundaries and explicit user settings.
 - Seed engine aliases once; do not overwrite later user changes. Product-level
   chrome simplifications and retired shortcuts are separate from the switch that
   disables modal key interception.

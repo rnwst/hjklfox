@@ -344,6 +344,9 @@ export class ModalNavigation {
       this.excludeChromeEditorFromTabOrder(active);
     }
     const mode = this.focusMode(active);
+    if (mode === "address") {
+      this.urlbar?.ensureDefaultMode();
+    }
     if (mode !== "command") {
       this.chromeEditing = true;
       this.setMode(mode);
@@ -373,6 +376,15 @@ export class ModalNavigation {
         browser.focus();
       }
     }
+  }
+
+  handleTabSelect() {
+    this.urlbar?.reset();
+    this.chromeEditing = this.isAddressBarFocus();
+    if (this.chromeEditing) {
+      this.urlbar?.ensureDefaultMode();
+    }
+    this.setMode(this.chromeEditing ? "address" : "command");
   }
 
   handleEvent(event) {
@@ -413,9 +425,7 @@ export class ModalNavigation {
       return;
     }
     if (event.type === "TabSelect") {
-      this.urlbar?.reset();
-      this.chromeEditing = this.isAddressBarFocus();
-      this.setMode(this.chromeEditing ? "address" : "command");
+      this.handleTabSelect();
       return;
     }
     if (event.type === "blur") {

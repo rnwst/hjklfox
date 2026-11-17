@@ -2660,6 +2660,10 @@ ${
     this._lastSearchString = searchString;
     this._valueOnLastSearch = this.value;
 
+    if (this === window.gURLBar && window.gModalNavigation?.enabled) {
+      window.gModalNavigation.urlbar?.configureQuery(queryContext);
+    }
+
     // TODO (Bug 1522902): This promise is necessary for tests, because some
     // tests are not listening for completion when starting a query through
     // other methods than startQuery (input events for example).

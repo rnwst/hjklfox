@@ -72,11 +72,11 @@ colors, the tint is omitted.
 | `n`, `N` | Next or previous submitted search result |
 | `i` | Enter insert mode |
 | `Esc` | Cancel or return to command mode |
-| `Space f` | Fuzzy destinations (history and bookmarks) |
+| `Space f` | Clear and focus the address bar |
 | `Space e` | Edit the existing address/query without clearing it |
-| `Space h`, `Space m` | Fuzzy history or bookmarks |
-| `Space b` | Fuzzy tab picker |
-| `Space s` | Web search in the native address bar |
+| `Space h`, `Space m` | Start a new history or bookmark search in the address bar |
+| `Space b` | Start a new open-tab search in the address bar |
+| `Space s` | Start a new search with the default search engine |
 
 Numeric prefixes apply to scrolling and tab switching, for example `5j` and
 `3gn`. Counts are capped at 999. Keys use logical characters, rather than fixed
@@ -129,34 +129,41 @@ find bar.
 
 The pickers share Firefox's native URL bar. Space-e focuses its existing text,
 exposes the full address for editing, and places the caret at the end. Space-f
-starts a fresh destination search. Both enter address-bar mode, not insert mode.
+starts a fresh address or web search. Both enter address-bar mode, not insert mode.
+Clicking the address bar or opening a new tab uses the same destinations mode as
+Space-f, but clicking preserves the existing text and mouse selection. Clicking
+within an active history, bookmarks, tabs, or engine picker preserves its scope.
+Space-e resumes the previous query mode when available, otherwise using destinations.
+Destination, history, and bookmark queries support Firefox's native inline URL
+completion alongside fuzzy results, respecting the autofill preference and source
+restriction. The empty input is not autofilled until you type.
 In local picker modes, matches can be
 noncontiguous, span multiple query words, and include titles, URLs, and bookmark
 tags. Contiguous matches rank above scattered matches; Firefox frecency breaks
 ties. Ranking is bounded to 1,000 SQL-filtered candidates. Tab results include
 other windows with the same private-browsing and container context.
 
-In the address field, Ctrl-n and Ctrl-p select results without arrow keys. Enter
-opens the selected or first local result; Alt-Enter opens it in a new tab (reusing
-an empty tab, as Firefox normally does). An
-unmatched local query stays in the picker instead of becoming an unexpected web
-search. Explicit URLs and engine aliases retain native handling. Use Space-s to
-search the web, or type an engine alias followed by your query.
+In the address field, Ctrl-n and Ctrl-p select results without arrow keys.
+In the default destinations mode, Enter navigates to an address or searches with
+the default engine, unless you select a different suggestion. Fuzzy history and
+bookmark matches appear alongside the native suggestions without replacing the
+default search action. Only the explicit history, bookmarks, and tab pickers stay
+local: Enter opens their selected or first match, and an unmatched query stays in
+the picker. Alt-Enter opens a destination in a new tab (reusing an empty tab, as
+Firefox normally does). Use Space-s to start a search explicitly scoped to the
+default engine, or type an engine alias followed by a space to select that engine.
 
 Typing `@` or an engine-alias prefix uses the same engine choices as Ctrl-Space,
 with icons and aliases. Exact aliases rank before longer prefix matches.
 Ctrl-Space keeps an already active `@` picker instead of replacing its input.
 
-With an engine selected, Ctrl-Space clears that selection while keeping the
-query and address-bar focus. Aliases can then select another engine, or Enter
-can search normally using the default engine.
-
-With no engine selected, Ctrl-Space opens the engine picker. Type part of a name or
-alias, select a result with Ctrl-n/Ctrl-p, then press Enter. Switching engines
-retains your original query. Escape restores it and the previous source/engine,
-then leaves address-bar mode in the same press. Ctrl-Space again returns to query
-editing without leaving the address bar. This uses Firefox's registered engines,
-including custom engines configured in Search settings.
+Ctrl-Space opens the engine picker whether or not an engine is already selected.
+The query stays visible and editable while all available engines are listed.
+Select an engine with Ctrl-n/Ctrl-p, then press Enter to confirm it. Press Enter
+again to submit the query to that engine. Ctrl-Space again cancels engine selection
+and restores the previous source/engine while keeping your query edits. Escape
+also restores the previous source/engine, then leaves address-bar mode. This uses
+Firefox's registered engines, including custom engines configured in Search settings.
 
 Typing a complete alias followed by a space also selects that engine from inside
 the picker. This starts a new query: any text after the alias becomes the query,

@@ -31,6 +31,11 @@
   -moz-user-focus: normal !important;
 }
 
+:root[modal-mode] #urlbar .urlbarView-row[row-selectable]:not([selected]):hover {
+  background-color: transparent;
+  color: inherit;
+}
+
 :root[modal-mode] findbar :is(.findbar-find-previous, .findbar-find-next) {
   display: none;
 }

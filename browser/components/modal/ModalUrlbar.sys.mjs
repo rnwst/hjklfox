@@ -32,7 +32,7 @@ const lazy = XPCOMUtils.declareLazy({
 
 const states = new WeakMap();
 let registered = false;
-const LOCAL_MODES = new Set(["destinations", "history", "bookmarks", "tabs"]);
+const LOCAL_MODES = new Set(["history", "bookmarks", "tabs"]);
 const ENGINE_ALIAS_QUERY = /^\s*@(?:\s*|\S+)$/u;
 
 function isEngineAliasQuery(context) {
@@ -80,7 +80,10 @@ export class ModalUrlbar {
   handleEvent(event) {
     if (event.type === "input") {
       this.inputRevision++;
-      if (this.mode === "engines" && !event.isComposing) {
+      if (this.mode === "engines") {
+        this.savedQuery = this.window.gURLBar.value;
+      }
+      if (this.window.gModalNavigation?.enabled && !event.isComposing) {
         this.completeEngineAlias().catch(console.error);
       }
       return;
@@ -113,9 +116,12 @@ export class ModalUrlbar {
     }
     const version = ++this.version;
     this.resumeContext = null;
+    this.savedQuery = null;
+    this.savedMode = null;
+    this.savedSearchMode = null;
     const bar = this.window.gURLBar;
-    this.mode = mode === "search" ? null : mode;
     bar.focus();
+    this.mode = mode === "search" ? null : mode;
     setQueryValue(bar, "");
     if (mode === "search") {
       await this.ready;
@@ -163,9 +169,39 @@ export class ModalUrlbar {
         : null;
     this.resumeContext = null;
     bar.focus();
+    this.ensureDefaultMode();
     bar.setValue(bar.untrimmedValue, { valueIsTyped: bar.valueIsTyped });
     bar.setSelectionRange(bar.value.length, bar.value.length);
     this.describe();
+  }
+
+  ensureDefaultMode() {
+    const bar = this.window.gURLBar;
+    if (this.mode || bar.searchMode?.engineName) {
+      return;
+    }
+    this.mode =
+      {
+        [lazy.UrlbarShared.RESULT_SOURCE.HISTORY]: "history",
+        [lazy.UrlbarShared.RESULT_SOURCE.BOOKMARKS]: "bookmarks",
+        [lazy.UrlbarShared.RESULT_SOURCE.TABS]: "tabs",
+      }[bar.searchMode?.source] || "destinations";
+    this.describe();
+  }
+
+  configureQuery(context) {
+    if (this.mode === "engines") {
+      context.providers = ["ModalLocal"];
+      context.sources = [lazy.UrlbarShared.RESULT_SOURCE.SEARCH];
+      context.maxResults = Math.max(context.maxResults, this.engineCount);
+    } else if (
+      LOCAL_MODES.has(this.mode) &&
+      !isAddress(context.searchString) &&
+      !context.searchString.trimStart().startsWith("@")
+    ) {
+      // Keep local pickers local without excluding native inline completion.
+      context.providers = ["UrlbarProviderAutofill", "ModalLocal"];
+    }
   }
 
   async exit() {
@@ -244,6 +280,10 @@ export class ModalUrlbar {
     const query = this.savedQuery || "";
     this.mode = null;
     this.savedQuery = null;
+    this.savedMode = null;
+    this.savedSearchMode = null;
+    bar.controller.cancelQuery();
+    bar.view.close();
     await bar.setSearchMode(
       { engineName, entry: "shortcut", isPreview: false },
       browser
@@ -262,6 +302,7 @@ export class ModalUrlbar {
   async showEngines() {
     const version = ++this.version;
     await this.ready;
+    const engines = await lazy.SearchService.getVisibleEngines();
     const bar = this.window.gURLBar;
     if (version !== this.version || !bar.focused) {
       return;
@@ -279,12 +320,9 @@ export class ModalUrlbar {
     this.savedQuery = bar.value;
     this.savedMode = this.mode;
     this.savedSearchMode = bar.searchMode;
+    this.engineCount = engines.length;
     this.mode = "engines";
-    await bar.setSearchMode(null, this.window.gBrowser.selectedBrowser);
-    if (version !== this.version) {
-      return;
-    }
-    bar.search("");
+    bar.startQuery({ allowAutofill: false });
     this.describe();
   }
 
@@ -328,7 +366,6 @@ export class ModalUrlbar {
       !engine ||
       version !== this.version ||
       inputRevision !== this.inputRevision ||
-      this.mode !== "engines" ||
       browser !== this.window.gBrowser.selectedBrowser ||
       !bar.focused
     ) {
@@ -351,28 +388,6 @@ export class ModalUrlbar {
     }
   }
 
-  async clearEngine() {
-    const bar = this.window.gURLBar;
-    const browser = this.window.gBrowser.selectedBrowser;
-    const query = bar.value;
-    const inputRevision = this.inputRevision;
-    this.reset();
-    const version = this.version;
-    bar.controller.cancelQuery();
-    bar.view.close();
-    await bar.setSearchMode(null, browser);
-    if (
-      version !== this.version ||
-      browser !== this.window.gBrowser.selectedBrowser ||
-      !bar.focused ||
-      this.inputRevision !== inputRevision ||
-      bar.value !== query
-    ) {
-      return;
-    }
-    bar.search(query);
-  }
-
   handleKey(event) {
     const bar = this.window.gURLBar;
     if (!bar.contains(event.target) && !bar.focused) {
@@ -386,8 +401,6 @@ export class ModalUrlbar {
     if (command === "address.engines") {
       if (this.mode === "engines") {
         this.cancelEngines().catch(console.error);
-      } else if (bar.searchMode?.engineName) {
-        this.clearEngine().catch(console.error);
       } else {
         this.showEngines().catch(console.error);
       }
@@ -428,7 +441,7 @@ export class ModalUrlbar {
       return;
     }
     const result = bar.view.selectedResult || bar.view.getResultAtIndex(0);
-    if (result?.providerName === "ModalLocal") {
+    if (result?.providerName === "ModalLocal" || result?.autofill) {
       bar.pickResult({ result, event });
     }
   }
@@ -464,7 +477,7 @@ export class ModalUrlbar {
   }
 }
 
-/** Local-only results for modal pickers and engine-alias selection. */
+/** Fuzzy destinations, local pickers, and engine-alias selection. */
 class ModalLocalProvider extends UrlbarProvider {
   get name() {
     return "ModalLocal";
@@ -472,8 +485,8 @@ class ModalLocalProvider extends UrlbarProvider {
   get type() {
     return lazy.UrlbarShared.PROVIDER_TYPE.PROFILE;
   }
-  getPriority() {
-    return 10;
+  getPriority(context) {
+    return isEngineAliasQuery(context) ? 10 : 0;
   }
 
   async isActive(context, controller) {
@@ -482,7 +495,7 @@ class ModalLocalProvider extends UrlbarProvider {
       !!state?.window.gModalNavigation?.enabled &&
       (state.mode === "engines" ||
         isEngineAliasQuery(context) ||
-        (LOCAL_MODES.has(state.mode) &&
+        ((state.mode === "destinations" || LOCAL_MODES.has(state.mode)) &&
           !context.searchString.trimStart().startsWith("@") &&
           !isAddress(context.searchString)))
     );
@@ -513,7 +526,10 @@ class ModalLocalProvider extends UrlbarProvider {
       if (!valid()) {
         return;
       }
-      const filter = context.searchString.trim().toLocaleLowerCase();
+      const filter =
+        mode === "engines"
+          ? ""
+          : context.searchString.trim().toLocaleLowerCase();
       const matches = engines
         .map(engine => ({
           engine,
@@ -547,7 +563,7 @@ class ModalLocalProvider extends UrlbarProvider {
               keyword: aliases[0] || "",
               keywords: aliases.join(", "),
               icon,
-              query: "",
+              query: mode === "engines" ? state.savedQuery || "" : "",
               providesSearchMode: true,
             },
           })
@@ -579,6 +595,7 @@ class ModalLocalProvider extends UrlbarProvider {
           b.frecency - a.frecency ||
           a.url.localeCompare(b.url)
       );
+    const hasAutofill = context.results.some(result => result.autofill);
     for (const [index, item] of ranked.slice(0, context.maxResults).entries()) {
       let source = lazy.UrlbarShared.RESULT_SOURCE.HISTORY;
       if (mode === "tabs") {
@@ -594,8 +611,8 @@ class ModalLocalProvider extends UrlbarProvider {
               ? lazy.UrlbarShared.RESULT_TYPE.TAB_SWITCH
               : lazy.UrlbarShared.RESULT_TYPE.URL,
           source,
-          heuristic: mode === "destinations" && index === 0,
-          suggestedIndex: index,
+          suggestedIndex:
+            index + Number(mode === "destinations" || hasAutofill),
           payload: {
             url: item.url,
             title: item.title || item.url,
