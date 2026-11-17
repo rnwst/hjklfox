@@ -61,6 +61,8 @@ export class ModalNavigation {
       "popupshowing",
       "pointerdown",
       "pointerup",
+      "MozDOMFullscreen:Entered",
+      "MozDOMFullscreen:Exited",
     ]) {
       const target = type.startsWith("key") ? win.windowRoot : win;
       target.addEventListener(type, this, true);
@@ -90,6 +92,13 @@ export class ModalNavigation {
     return (
       Services.focus.getFocusedElementForWindow(this.window, false, {}) ||
       this.window.document.activeElement
+    );
+  }
+
+  get inDOMFullscreen() {
+    return (
+      this.window.document.fullscreenElement ===
+      this.window.gBrowser.selectedBrowser
     );
   }
 
@@ -190,12 +199,17 @@ export class ModalNavigation {
         this.excludeChromeEditorFromTabOrder(this.window.gFindBar._findField);
       }
     } else {
+      this.fullscreenBrowser = null;
       this.restoreChromeTabOrder();
     }
     if (this.enabled && !this.urlbar) {
       this.urlbar = new lazy.ModalUrlbar(this.window);
     }
     this.urlbar?.reset();
+    if (this.enabled && this.inDOMFullscreen) {
+      this.updateFullscreen();
+      return;
+    }
     if (
       this.enabled &&
       this.isNavigationChrome(this.activeElement) &&
@@ -214,7 +228,9 @@ export class ModalNavigation {
   }
 
   setMode(mode) {
-    if (mode === "insert" && this.isAddressBarFocus()) {
+    if (this.enabled && this.inDOMFullscreen) {
+      mode = "insert";
+    } else if (mode === "insert" && this.isAddressBarFocus()) {
       mode = "address";
     } else if (mode === "insert" && this.isFindBarFocus()) {
       mode = "search";
@@ -316,6 +332,9 @@ export class ModalNavigation {
     if (event.target.ownerDocument !== this.window.document) {
       return;
     }
+    if (this.inDOMFullscreen) {
+      return;
+    }
     if (this.isNavigationChrome(active) && !this.isChromeEditor(active)) {
       event.stopImmediatePropagation();
       this.redirectChromeFocus();
@@ -337,6 +356,25 @@ export class ModalNavigation {
     }
   }
 
+  updateFullscreen() {
+    const win = this.window;
+    if (this.inDOMFullscreen) {
+      this.fullscreenBrowser = win.gBrowser.selectedBrowser;
+      this.chromeEditing = false;
+      this.urlbar?.reset();
+      this.setMode("insert");
+      this.fullscreenBrowser.focus();
+    } else if (!win.document.fullscreenElement && this.fullscreenBrowser) {
+      const browser = this.fullscreenBrowser;
+      this.fullscreenBrowser = null;
+      if (browser === win.gBrowser.selectedBrowser) {
+        this.chromeEditing = false;
+        this.setMode("command");
+        browser.focus();
+      }
+    }
+  }
+
   handleEvent(event) {
     const win = this.window;
     if (event.type === "unload") {
@@ -346,6 +384,10 @@ export class ModalNavigation {
       return;
     }
     if (!this.enabled) {
+      return;
+    }
+    if (event.type.startsWith("MozDOMFullscreen:")) {
+      this.updateFullscreen();
       return;
     }
     if (event.type === "popupshowing") {
@@ -400,6 +442,9 @@ export class ModalNavigation {
     }
     if (event.type !== "keydown") {
       this.finishKey(event);
+      return;
+    }
+    if (this.inDOMFullscreen) {
       return;
     }
     if (["Shift", "Control", "Alt", "Meta", "AltGraph"].includes(event.key)) {
@@ -772,6 +817,8 @@ export class ModalNavigation {
       "popupshowing",
       "pointerdown",
       "pointerup",
+      "MozDOMFullscreen:Entered",
+      "MozDOMFullscreen:Exited",
     ]) {
       const target = type.startsWith("key")
         ? this.window.windowRoot

@@ -36,6 +36,12 @@ suggestions or the engine picker and returns focus to the page in command mode,
 without navigating. Unfinished text is retained for Space-e to resume; an empty
 cancelled query restores the current page's address.
 
+Entering page fullscreen (including videos and video-player containers) activates
+insert mode automatically. Escape exits fullscreen using Firefox's native handling.
+Leaving fullscreen by any route returns to command mode with focus on the page;
+the previous editing mode is not restored. Browser-window fullscreen (F11) does
+not change the interaction mode.
+
 Tab and Shift-Tab in the address bar keep focus and the query there; use Escape
 to return to page command mode. Tab and Shift-Tab also stay in the page-find field;
 Enter submits and defocuses it, while Escape cancels and hides it.

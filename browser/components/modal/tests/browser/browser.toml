@@ -15,6 +15,8 @@ prefs = ["browser.modal.enabled=true", "general.smoothScroll=false"]
 
 ["browser_modal_focus.js"]
 
+["browser_modal_fullscreen.js"]
+
 ["browser_modal_keyboard.js"]
 
 ["browser_modal_key_popup.js"]
