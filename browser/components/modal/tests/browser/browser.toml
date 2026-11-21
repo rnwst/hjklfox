@@ -34,4 +34,7 @@ skip-if = [
 
 ["browser_modal_search.js"]
 
+["browser_modal_search_privacy.js"]
+support-files = ["!/browser/components/urlbar/tests/browser/searchSuggestionEngine.sjs"]
+
 ["browser_modal_urlbar.js"]

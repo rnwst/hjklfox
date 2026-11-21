@@ -153,6 +153,20 @@ the picker. Alt-Enter opens a destination in a new tab (reusing an empty tab, as
 Firefox normally does). Use Space-s to start a search explicitly scoped to the
 default engine, or type an engine alias followed by a space to select that engine.
 
+Remote search-engine suggestions are disabled in the default address-bar mode.
+Selecting an engine through Space-s, an alias followed by a space, or confirming
+an engine in the picker allows that engine to suggest queries as you type. Merely
+opening or cycling through the engine picker keeps the query local. Space-f
+returns to the default mode and stops fetching remote suggestions.
+Local history/bookmark suggestions and the “Search with” action work in default
+mode; pressing Enter submits the query to the chosen engine.
+
+The defaults are `browser.search.suggest.enabled = true` and
+`browser.urlbar.suggest.searches = false`. Existing profiles with explicit
+overrides can set these values in `about:config` to get the same behavior. Setting
+`browser.search.suggest.enabled` to `false` disables remote suggestions in engine
+mode too. Private-window suggestion preferences are respected.
+
 Typing `@` or an engine-alias prefix uses the same engine choices as Ctrl-Space,
 with icons and aliases. Exact aliases rank before longer prefix matches.
 Ctrl-Space keeps an already active `@` picker instead of replacing its input.

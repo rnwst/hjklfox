@@ -51,6 +51,9 @@ handoff is not a roadmap.
   fuzzy destinations. Explicit history, bookmark, and tab pickers stay local.
   Keep the query visible when choosing or changing search engines. Respect
   private-window/container boundaries and explicit user settings.
+- Keep default address-bar queries local. Allow remote search-engine suggestions
+  only in explicit engine scopes, subject to the user's suggestion preferences.
+  Keep local completion and user-submitted web searches available.
 - Seed engine aliases once; do not overwrite later user changes. Product-level
   chrome simplifications and retired shortcuts are separate from the switch that
   disables modal key interception.
