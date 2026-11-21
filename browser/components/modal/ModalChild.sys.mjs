@@ -27,7 +27,10 @@ export class ModalChild extends JSWindowActorChild {
   }
 
   handleKeyboardEvent(event) {
-    if (!this.insertMode || event.key === "Escape") {
+    const arrow = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(
+      event.key
+    );
+    if ((!this.insertMode && !arrow) || event.key === "Escape") {
       // Keep native defaults and system-group handlers, but not page listeners.
       event.stopImmediatePropagation();
     }

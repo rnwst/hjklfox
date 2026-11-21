@@ -20,7 +20,7 @@ async function recordedKeys(context, completedKey = null) {
   });
 }
 
-add_task(async function command_mode_hides_every_keyboard_event() {
+add_task(async function command_mode_hides_non_arrow_keyboard_events() {
   await BrowserTestUtils.withNewTab(KEYBOARD_PAGE, async browser => {
     browser.focus();
     await SpecialPowers.spawn(browser, [], () => {
@@ -71,6 +71,51 @@ add_task(async function command_mode_hides_every_keyboard_event() {
         "Native focus and activation work without exposing keys"
       );
     });
+  });
+});
+
+add_task(async function command_mode_passes_arrow_keys_to_pages() {
+  await BrowserTestUtils.withNewTab(KEYBOARD_PAGE, async browser => {
+    browser.focus();
+    await SpecialPowers.spawn(browser, [], () => {
+      content.wrappedJSObject.blockKeys = true;
+    });
+    for (const key of ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]) {
+      await SpecialPowers.spawn(browser, [], () => {
+        content.wrappedJSObject.keyEvents.length = 0;
+      });
+      EventUtils.synthesizeKey(`KEY_${key}`, { type: "keydown" });
+      await SpecialPowers.spawn(browser, [], () => {});
+      EventUtils.synthesizeKey(`KEY_${key}`, { type: "keydown", repeat: 2 });
+      await SpecialPowers.spawn(browser, [], () => {});
+      EventUtils.synthesizeKey(`KEY_${key}`, { type: "keyup" });
+      const events = await recordedKeys(browser, key);
+      Assert.ok(
+        events.filter(event => event.type === "keydown" && event.key === key)
+          .length >= 2 && events.some(event => event.repeat),
+        `${key} presses and repeats reach the page`
+      );
+      Assert.equal(
+        events.at(-1).type,
+        "keyup",
+        `${key} release reaches the page`
+      );
+      Assert.equal(gModalNavigation.mode, "command");
+    }
+
+    await SpecialPowers.spawn(browser, [], () => {
+      content.wrappedJSObject.keyEvents.length = 0;
+    });
+    EventUtils.synthesizeKey("KEY_ArrowDown", { type: "keydown" });
+    gModalNavigation.setMode("insert");
+    EventUtils.synthesizeKey("KEY_ArrowDown", { type: "keyup" });
+    const events = await recordedKeys(browser, "ArrowDown");
+    Assert.deepEqual(
+      events.map(event => event.type),
+      ["keydown", "keyup"],
+      "An arrow release still reaches the page after entering insert mode"
+    );
+    EventUtils.synthesizeKey("KEY_Escape");
   });
 });
 

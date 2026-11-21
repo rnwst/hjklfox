@@ -18,12 +18,13 @@ an editable field does. Pressing `i` enables insert mode and restores the last
 editor in the focused frame if it is still present.
 An explicitly focused control takes precedence over restoring the last editor.
 
-Outside insert mode, pages receive no keyboard press, repeat, or release events,
-including modifier keys and function keys. Firefox's own shortcuts remain
+In command mode, arrow-key presses, repeats, and releases pass through to pages.
+Other keyboard events, including modifier keys and function keys, are withheld
+outside insert mode. Firefox's own shortcuts remain
 available. Tab can move focus and Enter can activate a link or button without
 exposing the keys to page scripts; scripts can still respond to the resulting
 focus changes and clicks. In insert mode, page input works normally, except that
-Escape is withheld from the page. A key that starts outside insert mode cannot
+Escape is withheld from the page. A blocked key that starts outside insert mode cannot
 leak its release or repeat into a newly focused editor. Address-bar focus enters
 its own mode, with normal text editing and the native blue focus border; it never
 applies the green insert-mode toolbar tint.

@@ -19,7 +19,8 @@ handoff is not a roadmap.
 ## Behavioral principles
 
 - Distinguish **command**, **insert**, **address-bar**, and **page-search** modes.
-  Pages receive keyboard events only in insert mode, excluding Escape. Keep
+  Pages receive keyboard events in insert mode, excluding Escape, and arrow-key
+  events in command mode. Keep
   native browser shortcuts and Tab/Enter defaults without exposing their keys to
   page scripts. Explicit editing focus enters insert mode; unsolicited page
   autofocus must not. Mode-changing keys must not leak their repeats or releases.

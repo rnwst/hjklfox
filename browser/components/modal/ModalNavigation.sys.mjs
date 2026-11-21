@@ -564,7 +564,11 @@ export class ModalNavigation {
     const code = event.code || event.key;
     const blocked =
       inContent && this.mode === "insert" && this.pageBlockedKeys.has(code);
-    if (event.type === "keydown" && this.mode !== "insert") {
+    if (
+      event.type === "keydown" &&
+      this.mode !== "insert" &&
+      !["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)
+    ) {
       this.pageBlockedKeys.add(code);
     } else if (event.type === "keyup") {
       this.pageBlockedKeys.delete(code);
