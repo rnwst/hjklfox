@@ -45,6 +45,7 @@ export class ModalNavigation {
     this.keyPopup = new ModalKeyPopup(win);
     this.mode = "command";
     this.suppressed = new Set();
+    this.forwardedKeys = new Map();
     this.pageBlockedKeys = new Set();
     this.generation = 0;
     this.hints = null;
@@ -497,6 +498,10 @@ export class ModalNavigation {
         this.cancelHints();
         this.resetKeys();
         this.suppressed.clear();
+        for (const { actor, command } of this.forwardedKeys.values()) {
+          this.sendArrow(actor, { command, type: "keyup" });
+        }
+        this.forwardedKeys.clear();
         this.pageBlockedKeys.clear();
       }
       return;
@@ -505,6 +510,24 @@ export class ModalNavigation {
     let inContent = active === win.gBrowser.selectedBrowser;
     if (event.type === "focusin") {
       this.handleChromeFocus(event, active);
+      return;
+    }
+    const forwarded = this.forwardedKeys.get(event.code || event.key);
+    if (event.isTrusted && forwarded) {
+      this.consume(event);
+      if (event.type !== "keypress") {
+        this.sendArrow(forwarded.actor, {
+          command: forwarded.command,
+          type: event.type,
+          repeat: event.repeat,
+          count: 1,
+        });
+      }
+      if (event.type === "keyup") {
+        this.forwardedKeys.delete(event.code || event.key);
+        this.pageBlockedKeys.delete(event.code || event.key);
+        this.finishKey(event);
+      }
       return;
     }
     if (this.hasOpenPopup()) {
@@ -618,8 +641,63 @@ export class ModalNavigation {
       if (this.hints && !action.command.startsWith("scroll.")) {
         this.cancelHints();
       }
-      this.execute(action);
+      if (action.command.startsWith("key.")) {
+        const actor = this.focusedActor();
+        this.forwardedKeys.set(event.code || event.key, {
+          actor,
+          command: action.command,
+        });
+        this.sendArrow(actor, {
+          ...action,
+          type: "keydown",
+          repeat: event.repeat,
+        });
+      } else {
+        this.execute(action);
+      }
     }
+  }
+
+  sendArrow(actor, { command, type, repeat = false, count = 1 }) {
+    const key = {
+      "key.left": "ArrowLeft",
+      "key.down": "ArrowDown",
+      "key.up": "ArrowUp",
+      "key.right": "ArrowRight",
+    }[command];
+    // Dispatch after the original key finishes its input transaction.
+    Services.tm.dispatchToMainThread(() => {
+      if (
+        this.window.closed ||
+        !this.enabled ||
+        this.hasOpenPopup() ||
+        this.activeElement !== this.window.gBrowser.selectedBrowser ||
+        actor !== this.focusedActor()
+      ) {
+        return;
+      }
+      this.keyProcessor ||= Cc[
+        "@mozilla.org/text-input-processor;1"
+      ].createInstance(Ci.nsITextInputProcessor);
+      if (!this.keyProcessor.beginInputTransaction(this.window, () => true)) {
+        return;
+      }
+      const event = new this.window.KeyboardEvent("", {
+        key,
+        code: key,
+        repeat,
+      });
+      if (type === "keyup") {
+        this.keyProcessor.keyup(event);
+      } else {
+        for (let i = 0; i < count; i++) {
+          this.keyProcessor.keydown(event);
+          if (i < count - 1) {
+            this.keyProcessor.keyup(event);
+          }
+        }
+      }
+    });
   }
 
   consume(event) {

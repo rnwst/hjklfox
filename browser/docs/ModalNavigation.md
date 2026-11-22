@@ -20,6 +20,9 @@ editor in the focused frame if it is still present.
 An explicitly focused control takes precedence over restoring the last editor.
 
 In command mode, arrow-key presses, repeats, and releases pass through to pages.
+The `h`, `j`, `k`, and `l` bindings send Left, Down, Up, and Right arrow keys
+respectively. Pages can handle or cancel these events; otherwise native arrow-key
+behavior applies, including scrolling.
 Other keyboard events, including modifier keys and function keys, are withheld
 outside insert mode. Firefox's own shortcuts remain
 available. Tab can move focus and Enter can activate a link or button without
@@ -62,7 +65,7 @@ colors, the tint is omitted.
 
 | Keys | Action |
 | --- | --- |
-| `h`, `j`, `k`, `l` | Scroll left, down, up, right |
+| `h`, `j`, `k`, `l` | Send Left, Down, Up, Right arrow keys to the page |
 | `Ctrl-u`, `Ctrl-d` | Scroll half a viewport up or down |
 | `Ctrl-f`, `Ctrl-b` | Scroll a full viewport down or up |
 | `gg`, `ge` | Scroll to the beginning or end |
@@ -99,7 +102,7 @@ colors, the tint is omitted.
 | `Space b` | Start a new open-tab search in the address bar |
 | `Space s` | Start a new search with the default search engine |
 
-Numeric prefixes apply to scrolling, tab switching, and tab movement, for example
+Numeric prefixes apply to arrow presses, scrolling, tab switching, and tab movement, for example
 `5j`, `3tj`, and `3tJ`. Counts are capped at 999. Keys use logical characters,
 rather than fixed physical keyboard positions. In command mode, matching modal bindings override
 Firefox's existing bindings, such as `Ctrl-u` for View Source. Insert mode keeps
@@ -121,7 +124,7 @@ The JSON string preference `browser.modal.keybindings` overrides defaults. For
 example:
 
 ```json
-{"z": "scroll.down", "j": null, "g t": "tab.next"}
+{"z": "key.down", "j": null, "g t": "tab.next"}
 ```
 
 Use spaces between keys in a sequence, `Space` for the space key, and `C-` for

@@ -14,10 +14,10 @@ add_task(function sequences_and_counts() {
   Assert.deepEqual(keys.feed("j"), { command: "tab.next", count: 3 });
   keys.feed("g");
   keys.feed("z");
-  Assert.deepEqual(keys.feed("j"), { command: "scroll.down", count: 1 });
+  Assert.deepEqual(keys.feed("j"), { command: "key.down", count: 1 });
   keys.feed("2");
   keys.reset();
-  Assert.deepEqual(keys.feed("k"), { command: "scroll.up", count: 1 });
+  Assert.deepEqual(keys.feed("k"), { command: "key.up", count: 1 });
 });
 
 add_task(function page_search_navigation_uses_n_and_N() {
@@ -88,9 +88,9 @@ add_task(function shared_preference_parsing() {
   for (const value of ["invalid", "null", "[]", "true"]) {
     Assert.deepEqual(Keymap.fromJSON(value).bindings, defaults);
   }
-  const keys = Keymap.fromJSON('{"j":null,"z":"scroll.down"}');
+  const keys = Keymap.fromJSON('{"j":null,"z":"key.down"}');
   Assert.equal(keys.feed("j"), null);
-  Assert.deepEqual(keys.feed("z"), { command: "scroll.down", count: 1 });
+  Assert.deepEqual(keys.feed("z"), { command: "key.down", count: 1 });
 });
 
 add_task(function prefix_completions_follow_overrides() {

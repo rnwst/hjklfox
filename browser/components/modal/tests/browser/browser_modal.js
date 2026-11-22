@@ -143,16 +143,18 @@ async function openPage(task) {
   });
 }
 
-add_task(async function command_keys_do_not_reach_page() {
+add_task(async function command_keys_only_expose_translated_arrows() {
   await openPage(async browser => {
     EventUtils.synthesizeKey("z");
     EventUtils.synthesizeKey("j");
     await SpecialPowers.spawn(browser, [], async () => {
-      await ContentTaskUtils.waitForCondition(() => content.scrollY > 0);
+      await ContentTaskUtils.waitForCondition(() =>
+        content.wrappedJSObject.keys.includes("keyup:ArrowDown")
+      );
       Assert.deepEqual(
         Array.from(content.wrappedJSObject.keys),
-        [],
-        "Command keys never reach the page"
+        ["keydown:ArrowDown", "keyup:ArrowDown"],
+        "Only the translated arrow reaches the page"
       );
       Assert.equal(
         content.document.querySelector("input").value,
@@ -362,15 +364,17 @@ add_task(async function binding_overrides() {
       set: [
         [
           "browser.modal.keybindings",
-          JSON.stringify({ z: "scroll.down", j: null }),
+          JSON.stringify({ z: "key.down", j: null }),
         ],
       ],
     });
     try {
       EventUtils.synthesizeKey("z");
       await SpecialPowers.spawn(browser, [], async () => {
-        await ContentTaskUtils.waitForCondition(() => content.scrollY > 0);
-        Assert.ok(true, "Custom binding executes the registered action");
+        await ContentTaskUtils.waitForCondition(() =>
+          content.wrappedJSObject.keys.includes("keyup:ArrowDown")
+        );
+        Assert.ok(true, "Custom binding sends an arrow key");
       });
     } finally {
       await SpecialPowers.popPrefEnv();

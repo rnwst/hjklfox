@@ -42,10 +42,10 @@ modal-newtab-group-other = Other shortcuts
 modal-key-completions-title = { $prefix } — complete a shortcut
 modal-key-completions-cancel = Escape to cancel
 
-modal-shortcut-scroll-left = Scroll left
-modal-shortcut-scroll-down = Scroll down
-modal-shortcut-scroll-up = Scroll up
-modal-shortcut-scroll-right = Scroll right
+modal-shortcut-key-left = Send Left arrow to the page
+modal-shortcut-key-down = Send Down arrow to the page
+modal-shortcut-key-up = Send Up arrow to the page
+modal-shortcut-key-right = Send Right arrow to the page
 modal-shortcut-scroll-half-up = Scroll half a page up
 modal-shortcut-scroll-half-down = Scroll half a page down
 modal-shortcut-scroll-page-down = Scroll a page down

@@ -3,10 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 export const DEFAULT_BINDINGS = Object.freeze({
-  h: "scroll.left",
-  j: "scroll.down",
-  k: "scroll.up",
-  l: "scroll.right",
+  h: "key.left",
+  j: "key.down",
+  k: "key.up",
+  l: "key.right",
   "C-u": "scroll.half-up",
   "C-d": "scroll.half-down",
   "C-f": "scroll.page-down",

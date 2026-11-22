@@ -13,7 +13,7 @@ const GROUPS = {
   address: ["urlbar"],
   "address-input": ["address"],
   editing: ["mode"],
-  scrolling: ["scroll"],
+  scrolling: ["scroll", "key"],
   navigation: ["tab", "group", "history", "split"],
   "tab-selection": ["selection"],
   find: ["find"],

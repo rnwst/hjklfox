@@ -114,7 +114,7 @@ add_task(async function guide_tracks_live_overrides_and_disabling() {
       set: [
         [
           "browser.modal.keybindings",
-          JSON.stringify({ j: null, z: "scroll.down", "g t": "tab.next" }),
+          JSON.stringify({ j: null, z: "key.down", "g t": "tab.next" }),
         ],
       ],
     });
@@ -125,7 +125,7 @@ add_task(async function guide_tracks_live_overrides_and_disabling() {
           doc.querySelector('[data-keys="z"]')
         );
         Assert.ok(
-          !doc.querySelector('[data-command="scroll.down"] [data-keys="j"]')
+          !doc.querySelector('[data-command="key.down"] [data-keys="j"]')
         );
         Assert.ok(
           doc.querySelector('[data-command="selection.next"] [data-keys="j"]')
@@ -142,7 +142,7 @@ add_task(async function guide_tracks_live_overrides_and_disabling() {
     await SpecialPowers.spawn(browser, [], async () => {
       await ContentTaskUtils.waitForCondition(() =>
         content.document.querySelector(
-          '[data-command="scroll.down"] [data-keys="j"]'
+          '[data-command="key.down"] [data-keys="j"]'
         )
       );
       Assert.ok(!content.document.querySelector('[data-keys="z"]'));

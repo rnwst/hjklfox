@@ -119,6 +119,70 @@ add_task(async function command_mode_passes_arrow_keys_to_pages() {
   });
 });
 
+add_task(async function command_mode_translates_hjkl_to_arrows() {
+  await BrowserTestUtils.withNewTab(KEYBOARD_PAGE, async browser => {
+    browser.focus();
+    await SpecialPowers.spawn(browser, [], () => {
+      content.wrappedJSObject.blockKeys = true;
+      content.document.body.style.height = "5000px";
+    });
+    for (const [letter, key] of Object.entries({
+      h: "ArrowLeft",
+      j: "ArrowDown",
+      k: "ArrowUp",
+      l: "ArrowRight",
+    })) {
+      await SpecialPowers.spawn(browser, [], () => {
+        content.wrappedJSObject.keyEvents.length = 0;
+      });
+      EventUtils.synthesizeKey(letter, { type: "keydown" });
+      await SpecialPowers.spawn(browser, [], () => {});
+      EventUtils.synthesizeKey(letter, { type: "keydown", repeat: 2 });
+      await SpecialPowers.spawn(browser, [], () => {});
+      EventUtils.synthesizeKey(letter, { type: "keyup" });
+      const events = await recordedKeys(browser, key);
+      Assert.ok(
+        events.every(
+          event => event.key === key && event.code === key && event.isTrusted
+        ),
+        "Only trusted arrows reach the page"
+      );
+      Assert.equal(events[0].type, "keydown");
+      Assert.equal(events.at(-1).type, "keyup");
+      Assert.ok(
+        events.some(event => event.repeat),
+        "Holding the letter repeats the arrow"
+      );
+      Assert.equal(events.filter(event => event.type === "keyup").length, 1);
+      Assert.equal(gModalNavigation.mode, "command");
+    }
+    await SpecialPowers.spawn(browser, [], () => {
+      content.wrappedJSObject.keyEvents.length = 0;
+    });
+    EventUtils.synthesizeKey("3");
+    EventUtils.synthesizeKey("j");
+    await SpecialPowers.spawn(browser, [], async () => {
+      await ContentTaskUtils.waitForCondition(
+        () =>
+          content.wrappedJSObject.keyEvents.filter(
+            event => event.type === "keyup"
+          ).length === 3
+      );
+      Assert.equal(
+        content.scrollY,
+        0,
+        "Pages can prevent the arrows' default scrolling"
+      );
+      content.wrappedJSObject.blockKeys = false;
+    });
+    EventUtils.synthesizeKey("j");
+    await SpecialPowers.spawn(browser, [], async () => {
+      await ContentTaskUtils.waitForCondition(() => content.scrollY > 0);
+      Assert.ok(true, "Uncancelled arrows perform native scrolling");
+    });
+  });
+});
+
 add_task(async function insert_mode_delivers_keys_but_not_mode_transitions() {
   await BrowserTestUtils.withNewTab(KEYBOARD_PAGE, async browser => {
     browser.focus();
@@ -248,6 +312,17 @@ add_task(async function remote_frames_follow_the_window_mode() {
       [],
       "Remote frames do not receive command-mode keys"
     );
+    EventUtils.synthesizeKey("j");
+    Assert.deepEqual(
+      (await recordedKeys(frame, "ArrowDown")).map(
+        event => `${event.type}:${event.key}`
+      ),
+      ["keydown:ArrowDown", "keyup:ArrowDown"],
+      "Translated arrows reach the focused remote frame"
+    );
+    await SpecialPowers.spawn(frame, [], () => {
+      content.wrappedJSObject.keyEvents.length = 0;
+    });
     EventUtils.synthesizeKey("i");
     EventUtils.synthesizeKey("x");
     Assert.deepEqual(

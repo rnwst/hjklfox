@@ -26,7 +26,7 @@ handoff is not a roadmap.
 - Distinguish **command**, **insert**, **address-bar**, **page-search**, and
   **tab-selection** modes. Pages receive keyboard events in insert mode,
   excluding Escape and the command-only Ctrl-w prefix, and arrow-key
-  events in command mode. Keep
+  events in command mode (including `hjkl` translated to Left/Down/Up/Right). Keep
   native browser shortcuts and Tab/Enter defaults without exposing their keys to
   page scripts. Explicit editing focus enters insert mode; unsolicited page
   autofocus must not. Mode-changing keys must not leak their repeats or releases.

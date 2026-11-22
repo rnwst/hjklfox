@@ -11,7 +11,7 @@
   window.blockKeys = false;
   for (const type of ["keydown", "keypress", "keyup"]) {
     window.addEventListener(type, event => {
-      window.keyEvents.push({ type, key: event.key, repeat: event.repeat });
+      window.keyEvents.push({ type, key: event.key, code: event.code, repeat: event.repeat, isTrusted: event.isTrusted });
       if (window.blockKeys) {
         event.preventDefault();
         event.stopImmediatePropagation();

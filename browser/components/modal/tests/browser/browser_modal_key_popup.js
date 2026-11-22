@@ -211,7 +211,7 @@ add_task(async function long_completion_menu_uses_the_available_page_height() {
   const bindings = Object.fromEntries(
     Array.from({ length: 100 }, (_, i) => [
       `Space z ${String.fromCharCode(97 + Math.floor(i / 26))} ${String.fromCharCode(97 + (i % 26))}`,
-      "scroll.down",
+      "key.down",
     ])
   );
   await SpecialPowers.pushPrefEnv({
