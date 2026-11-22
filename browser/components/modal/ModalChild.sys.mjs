@@ -20,6 +20,7 @@ export class ModalChild extends JSWindowActorChild {
   refreshFrame = null;
   mutationObserver = null;
   needsRetarget = false;
+  hintRoots = new Set();
   insertMode = false;
 
   actorCreated() {
@@ -205,9 +206,7 @@ export class ModalChild extends JSWindowActorChild {
         if (this.document.visibilityState === "hidden") {
           return 0;
         }
-        for (const element of this.document.querySelectorAll(
-          this.newTabHint ? "a[href]" : HINT_TARGETS
-        )) {
+        for (const element of this.hintCandidates()) {
           if (this.point(element)) {
             this.targets.push(element);
             if (this.targets.length === 1000) {
@@ -261,7 +260,7 @@ export class ModalChild extends JSWindowActorChild {
       !this.isHintTarget(element) ||
       element.matches(":disabled") ||
       element.getAttribute("aria-disabled") === "true" ||
-      element.closest("[inert]") ||
+      this.hasInertAncestor(element) ||
       !element.checkVisibility({
         visibilityProperty: true,
         opacityProperty: true,
@@ -279,11 +278,60 @@ export class ModalChild extends JSWindowActorChild {
       }
       const x = (left + right) / 2;
       const y = (top + bottom) / 2;
-      if (element.contains(this.document.elementFromPoint(x, y))) {
+      let hit = this.document.elementFromPoint(x, y);
+      while (hit?.shadowRoot) {
+        const inner = hit.shadowRoot.elementFromPoint(x, y);
+        if (!inner || inner === hit) {
+          break;
+        }
+        hit = inner;
+      }
+      while (hit && hit !== element) {
+        hit = hit.assignedSlot || hit.parentElement || hit.getRootNode().host;
+      }
+      if (hit === element) {
         return { x, y, left, top };
       }
     }
     return null;
+  }
+
+  hasInertAncestor(element) {
+    for (
+      let ancestor = element;
+      ancestor;
+      ancestor =
+        ancestor.assignedSlot ||
+        ancestor.parentElement ||
+        ancestor.getRootNode().host
+    ) {
+      if (ancestor.hasAttribute("inert")) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  *hintCandidates(root = this.document) {
+    this.hintRoots.add(root);
+    this.observeHintRoot(root);
+    for (const element of root.querySelectorAll("*")) {
+      if (element.matches(this.newTabHint ? "a[href]" : HINT_TARGETS)) {
+        yield element;
+      }
+      if (element.shadowRoot) {
+        yield* this.hintCandidates(element.shadowRoot);
+      }
+    }
+  }
+
+  observeHintRoot(root) {
+    this.mutationObserver?.observe(root, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      characterData: true,
+    });
   }
 
   async focusSplitPicker() {
@@ -429,12 +477,9 @@ export class ModalChild extends JSWindowActorChild {
       );
       this.scheduleRefresh();
     });
-    this.mutationObserver.observe(this.document.documentElement, {
-      subtree: true,
-      childList: true,
-      attributes: true,
-      characterData: true,
-    });
+    for (const root of this.hintRoots) {
+      this.observeHintRoot(root);
+    }
     this.needsRetarget = true;
     this.scheduleRefresh();
   }
@@ -456,7 +501,7 @@ export class ModalChild extends JSWindowActorChild {
     ) {
       const used = new Set(this.targets.filter(target => target.isConnected));
       const replacements = new Map();
-      for (const target of this.document.querySelectorAll(HINT_TARGETS)) {
+      for (const target of this.hintCandidates()) {
         const key = this.targetKey(target);
         if (key && !used.has(target) && this.point(target)) {
           if (!replacements.has(key)) {
@@ -574,6 +619,7 @@ export class ModalChild extends JSWindowActorChild {
   clear() {
     this.mutationObserver?.disconnect();
     this.mutationObserver = null;
+    this.hintRoots.clear();
     if (this.refreshFrame !== null) {
       this.overlayDocument?.defaultView?.cancelAnimationFrame(
         this.refreshFrame

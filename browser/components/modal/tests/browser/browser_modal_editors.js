@@ -194,3 +194,77 @@ add_task(async function remote_frame_editors_allow_typing() {
     await activateEditor(browser, browser.browsingContext.children[0], "text");
   });
 });
+
+add_task(async function shadow_editors_keep_hints_and_allow_typing() {
+  await BrowserTestUtils.withNewTab(EDITOR_PAGE, async browser => {
+    await SpecialPowers.spawn(browser, [], () => {
+      const host = content.document.createElement("div");
+      content.document.body.replaceChildren(host);
+      const nested = content.document.createElement("div");
+      host.attachShadow({ mode: "open" }).append(nested);
+      const input = content.document.createElement("input");
+      input.id = "shadow-editor";
+      nested.attachShadow({ mode: "open" }).append(input);
+    });
+    const hints = await editorHints(browser);
+    Assert.deepEqual(
+      hints.map(hint => hint.id),
+      ["shadow-editor"]
+    );
+    await SpecialPowers.spawn(browser, [], async () => {
+      const actor = content.windowGlobalChild.getActor("Modal");
+      const original = actor.targets[0];
+      const replacement = original.cloneNode();
+      original.replaceWith(replacement);
+      await ContentTaskUtils.waitForCondition(
+        () => actor.targets[0] === replacement
+      );
+      replacement.disabled = true;
+      await ContentTaskUtils.waitForCondition(
+        () => actor.overlay.root.querySelector(".hint").hidden
+      );
+      replacement.disabled = false;
+      await ContentTaskUtils.waitForCondition(
+        () => !actor.overlay.root.querySelector(".hint").hidden
+      );
+    });
+    EventUtils.sendString(hints[0].label);
+    await TestUtils.waitForCondition(() => gModalNavigation.mode === "insert");
+    EventUtils.sendString("hello");
+    await SpecialPowers.spawn(browser, [], async () => {
+      const root =
+        content.document.body.firstElementChild.shadowRoot.firstElementChild
+          .shadowRoot;
+      await ContentTaskUtils.waitForCondition(
+        () => root.activeElement?.value === "hello"
+      );
+    });
+    EventUtils.synthesizeKey("KEY_Escape");
+  });
+});
+
+add_task(async function keyboard_page_search_receives_a_hint() {
+  await BrowserTestUtils.withNewTab("about:keyboard", async browser => {
+    await SpecialPowers.spawn(browser, [], async () => {
+      await content.customElements.whenDefined("moz-input-search");
+      await ContentTaskUtils.waitForCondition(() =>
+        content.document
+          .getElementById("search")
+          ?.shadowRoot?.querySelector("input")
+      );
+    });
+    const hints = await editorHints(browser);
+    const search = hints.find(hint => hint.name.endsWith("Search shortcuts"));
+    Assert.ok(search, "The keyboard page search has a hint");
+    EventUtils.sendString(search.label);
+    await TestUtils.waitForCondition(() => gModalNavigation.mode === "insert");
+    await SpecialPowers.spawn(browser, [], () => {
+      const host = content.document.getElementById("search");
+      Assert.equal(
+        host.shadowRoot.activeElement,
+        host.shadowRoot.querySelector("input")
+      );
+    });
+    EventUtils.synthesizeKey("KEY_Escape");
+  });
+});
