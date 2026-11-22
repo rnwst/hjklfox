@@ -11,6 +11,11 @@ practical to update continuously from Firefox `main`. Prefer a small integration
 surface and native Firefox services over parallel implementations or invasive
 changes to Gecko.
 
+Keep Hjklfox a lightweight patch set that can be reapplied to new Firefox
+versions. Reuse native Firefox behaviour and services, isolate fork-specific
+policy in dedicated components, and limit upstream changes to small, targeted
+integration points.
+
 The browser should be visually quiet. Its current defaults and implemented
 controls are documented in [ModalNavigation.md](browser/docs/ModalNavigation.md).
 That document and `Keymap.sys.mjs` are the reference for existing behavior; this
