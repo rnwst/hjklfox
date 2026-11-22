@@ -617,13 +617,14 @@ add_task(
         content.wrappedJSObject.blockKeys = true;
       });
       const restored = BrowserTestUtils.waitForNewTab(gBrowser, closedURL);
-      await nativeKey("ctrl+shift+t", "Control");
+      await nativeKey("t", "t");
+      await nativeKey("u", "u");
       const reopened = await restored;
       await SpecialPowers.spawn(browser, [], () => {
         Assert.deepEqual(
           content.wrappedJSObject.keyEvents,
           [],
-          "Native Ctrl-Shift-T cannot be intercepted by the page"
+          "Native tu cannot be intercepted by the page"
         );
       });
       BrowserTestUtils.removeTab(reopened);

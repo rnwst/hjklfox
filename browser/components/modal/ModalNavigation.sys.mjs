@@ -810,6 +810,16 @@ export class ModalNavigation {
       case "tab.new":
         this.window.BrowserCommands.openTab();
         break;
+      case "tab.new-before":
+        this.window.BrowserCommands.openTab({
+          tabIndex: browser.selectedTab.index,
+        });
+        break;
+      case "tab.reopen":
+        this.window.SessionWindowUI.restoreLastClosedTabOrWindowOrSession(
+          this.window
+        );
+        break;
       case "tab.close":
         this.window.BrowserCommands.closeTabOrWindow();
         break;

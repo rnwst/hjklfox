@@ -257,7 +257,8 @@ add_task(async function command_mode_protects_reopen_tab_from_page_handlers() {
       content.wrappedJSObject.blockKeys = true;
     });
     const restored = BrowserTestUtils.waitForNewTab(gBrowser, url);
-    EventUtils.synthesizeKey("t", { ctrlKey: true, shiftKey: true });
+    EventUtils.synthesizeKey("t");
+    EventUtils.synthesizeKey("u");
     const reopened = await restored;
     Assert.deepEqual(
       await recordedKeys(browser),

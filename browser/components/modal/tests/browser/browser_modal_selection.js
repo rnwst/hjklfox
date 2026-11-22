@@ -564,6 +564,7 @@ add_task(async function new_and_close_tab_shortcuts() {
     for (const mode of ["command", "insert", "select"]) {
       gModalNavigation.setMode(mode);
       EventUtils.synthesizeKey("t", { ctrlKey: true });
+      EventUtils.synthesizeKey("t", { ctrlKey: true, shiftKey: true });
       if (mode !== "command") {
         EventUtils.synthesizeKey("w", { ctrlKey: true });
       }
@@ -593,6 +594,33 @@ add_task(async function new_and_close_tab_shortcuts() {
       if (tab.isOpen) {
         await BrowserTestUtils.removeTab(tab);
       }
+    }
+  }
+});
+
+add_task(async function new_tab_before_current() {
+  for (const insertAfterCurrent of [false, true]) {
+    await SpecialPowers.pushPrefEnv({
+      set: [["browser.tabs.insertAfterCurrent", insertAfterCurrent]],
+    });
+    const original = gBrowser.selectedTab;
+    let tab;
+    try {
+      gModalNavigation.enterCommand();
+      const index = original.index;
+      const opened = BrowserTestUtils.waitForNewTab(gBrowser);
+      await keys("tN");
+      tab = await opened;
+      Assert.equal(tab.index, index, "tN inserts before the current tab");
+      Assert.equal(original.index, index + 1, "The original tab follows it");
+      Assert.equal(gBrowser.selectedTab, tab, "The new tab is selected");
+      await TestUtils.waitForCondition(() => gURLBar.focused);
+    } finally {
+      if (tab) {
+        await BrowserTestUtils.removeTab(tab);
+      }
+      gModalNavigation.enterCommand();
+      await SpecialPowers.popPrefEnv();
     }
   }
 });

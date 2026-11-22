@@ -406,6 +406,8 @@ export const URILoadingHelper = {
    *                  Force the load to happen in non-private windows.
    * @param {boolean} [params.relatedToCurrent]
    *                  Whether new tabs should go immediately next to the current tab.
+   * @param {number} [params.tabIndex]
+   *   Position at which to insert a new tab.
    * @param {Element} [params.targetBrowser]
    *                  The browser to use for the load. Only used if where == "current".
    * @param {boolean} [params.inBackground]
@@ -630,6 +632,7 @@ export const URILoadingHelper = {
           inBackground: loadInBackground,
           allowThirdPartyFixup,
           relatedToCurrent: params.relatedToCurrent,
+          tabIndex: params.tabIndex,
           skipAnimation: skipTabAnimation,
           userContextId,
           originPrincipal,

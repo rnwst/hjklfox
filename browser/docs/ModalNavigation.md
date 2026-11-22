@@ -72,6 +72,8 @@ colors, the tint is omitted.
 | `gh`, `gl` | Scroll to the left or right edge |
 | `tj`, `tk` | Next or previous tab |
 | `tn` | Open a new tab |
+| `tN` | Open a new tab before the current tab |
+| `tu` | Reopen the last closed tab (replaces Ctrl-Shift-T) |
 | `tq` | Close all selected tabs, or the current tab |
 | `tv` | Enter tab selection mode |
 | `tJ`, `tK` | Move the current tab forward or backward |

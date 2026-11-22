@@ -225,7 +225,7 @@ var BrowserCommands = {
     }
   },
 
-  openTab({ event, url } = {}) {
+  openTab({ event, url, tabIndex } = {}) {
     let werePassedURL = !!url;
     url ??= BROWSER_NEW_TAB_URL;
     let searchClipboard =
@@ -267,6 +267,7 @@ var BrowserCommands = {
         wrappedJSObject: new Promise(resolve => {
           let options = {
             relatedToCurrent,
+            tabIndex,
             resolveOnNewTabCreated: resolve,
           };
           if (!werePassedURL && searchClipboard) {
