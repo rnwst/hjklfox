@@ -387,6 +387,14 @@ export class ModalNavigation {
     this.setMode(this.chromeEditing ? "address" : "command");
   }
 
+  hasOpenPopup() {
+    return [
+      ...this.window.document.querySelectorAll(
+        'panel:not([role="tooltip"]), menupopup'
+      ),
+    ].some(popup => popup.state === "open" || popup.state === "showing");
+  }
+
   handleEvent(event) {
     const win = this.window;
     if (event.type === "unload") {
@@ -443,6 +451,13 @@ export class ModalNavigation {
       this.handleChromeFocus(event, active);
       return;
     }
+    if (this.hasOpenPopup()) {
+      this.finishKey(event);
+      if (event.type === "keyup") {
+        this.pageBlockedKeys.delete(event.code || event.key);
+      }
+      return;
+    }
     if (
       !event.isTrusted ||
       event.isComposing ||
@@ -462,13 +477,6 @@ export class ModalNavigation {
     }
     this.tabFocusPending =
       event.key === "Tab" && !event.ctrlKey && !event.altKey && !event.metaKey;
-    if (
-      win.document.querySelector(
-        'panel[panelopen="true"]:not([role="tooltip"]), menupopup[open="true"]'
-      )
-    ) {
-      return;
-    }
     if ([win.document.body, win.document.documentElement].includes(active)) {
       const tabFocusPending = this.tabFocusPending;
       this.chromeEditing = false;

@@ -24,6 +24,8 @@ prefs = ["browser.modal.enabled=true", "general.smoothScroll=false"]
 
 ["browser_modal_keyboard.js"]
 
+["browser_modal_menus.js"]
+
 ["browser_modal_native.js"]
 skip-if = [
   "headless",
