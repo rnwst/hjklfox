@@ -1128,7 +1128,7 @@ pref("browser.tabs.insertRelatedAfterCurrent", true);
 // Open all links, e.g., bookmarks, history items at next to current tab
 // if |insertAfterCurrent| is true.  Otherwise, append new tab to the end
 // for non-related links.
-pref("browser.tabs.insertAfterCurrent", false);
+pref("browser.tabs.insertAfterCurrent", true);
 // When a new tab is inserted next to a pinned tab, the tabbar scrolls
 // back to the beginning. Setting |insertAfterCurrentExceptPinned| to true
 // will add such tabs at the end of the tabbar instead.
