@@ -148,6 +148,43 @@ add_task(async function custom_nested_sequences_and_mode_changes() {
   }
 });
 
+add_task(async function long_completion_menu_uses_the_available_page_height() {
+  const bindings = Object.fromEntries(
+    Array.from({ length: 100 }, (_, i) => [
+      `Space z ${String.fromCharCode(97 + Math.floor(i / 26))} ${String.fromCharCode(97 + (i % 26))}`,
+      "scroll.down",
+    ])
+  );
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.modal.keybindings", JSON.stringify(bindings)]],
+  });
+  try {
+    await BrowserTestUtils.withNewTab("about:blank", async browser => {
+      browser.focus();
+      const panel = await openPrefix(" ");
+      const content = panel.querySelector(".modal-key-completions-content");
+      const bounds = panel.getBoundingClientRect();
+      const page = browser.getBoundingClientRect();
+      const margin = parseFloat(getComputedStyle(panel).right);
+      Assert.greater(
+        content.scrollHeight,
+        content.clientHeight,
+        "The deliberately long menu scrolls"
+      );
+      Assert.lessOrEqual(
+        Math.abs(bounds.bottom - (page.bottom - margin)),
+        2,
+        "The popup fills the available page height before scrolling"
+      );
+      Assert.less(bounds.top, bounds.bottom);
+      EventUtils.synthesizeKey("KEY_Escape");
+      await closed();
+    });
+  } finally {
+    await SpecialPowers.popPrefEnv();
+  }
+});
+
 add_task(async function tab_switch_dismisses_prefix() {
   await BrowserTestUtils.withNewTab("about:blank", async browser => {
     browser.focus();

@@ -70,9 +70,13 @@ export class ModalKeyPopup {
 
   position() {
     const toolbar = this.window.document.getElementById("nav-bar");
+    const top = toolbar.getBoundingClientRect().bottom;
+    const bottom =
+      this.window.gBrowser.selectedBrowser.getBoundingClientRect().bottom;
+    this.panel.style.setProperty("--modal-key-popup-top", `${top}px`);
     this.panel.style.setProperty(
-      "--modal-key-popup-top",
-      `${toolbar.getBoundingClientRect().bottom}px`
+      "--modal-key-popup-height",
+      `${Math.max(0, bottom - top)}px`
     );
   }
 

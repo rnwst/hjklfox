@@ -76,7 +76,7 @@
 
 .modal-key-completions-content {
   max-inline-size: var(--size-layout-large);
-  max-block-size: 60vh;
+  max-block-size: max(0px, calc(var(--modal-key-popup-height, 100vh) - 2 * var(--space-medium) - 2 * var(--space-large) - 2 * var(--border-width)));
   overflow: auto;
 }
 

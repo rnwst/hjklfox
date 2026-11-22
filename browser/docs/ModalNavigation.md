@@ -90,6 +90,7 @@ top right, below the navigation toolbar. It shows the remaining keys and their
 actions using your current bindings, including custom sequences. Keep typing to
 complete the shortcut; the popup does not take focus. Escape, an unmatched key,
 changing tabs, or leaving command mode dismisses it.
+The popup uses the available page height, minus margins, before scrolling.
 
 Alt-d and Ctrl-l no longer focus the address bar; use Space-f from command mode.
 
