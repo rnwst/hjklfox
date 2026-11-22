@@ -52,6 +52,7 @@ export class ModalParent extends JSWindowActorParent {
     } else if (name === "Modal:PageShow") {
       if (!this.browsingContext.parent) {
         controller.noteDocument();
+        controller.focusSplitPicker(this).catch(console.error);
       }
     }
   }

@@ -266,7 +266,12 @@ add_task(
       await nativeKey("e", "e");
       await TestUtils.waitForCondition(() => gURLBar.focused);
       const opened = BrowserTestUtils.waitForNewTab(gBrowser, "about:newtab");
-      await nativeKey("ctrl+t", "Control");
+      await nativeKey("Escape", "Escape");
+      await TestUtils.waitForCondition(
+        () => gModalNavigation.mode === "command"
+      );
+      await nativeKey("t", "t");
+      await nativeKey("n", "n");
       const other = await opened;
       try {
         await TestUtils.waitForCondition(

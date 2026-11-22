@@ -5,6 +5,7 @@
 import {
   ADDRESS_BINDINGS,
   Keymap,
+  SELECT_BINDINGS,
 } from "moz-src:///browser/components/modal/Keymap.sys.mjs";
 
 const PREFS = ["browser.modal.enabled", "browser.modal.keybindings"];
@@ -13,7 +14,8 @@ const GROUPS = {
   "address-input": ["address"],
   editing: ["mode"],
   scrolling: ["scroll"],
-  navigation: ["tab", "history"],
+  navigation: ["tab", "group", "history", "split"],
+  "tab-selection": ["selection"],
   find: ["find"],
   hints: ["hint"],
   other: [],
@@ -54,6 +56,7 @@ export class ModalNewTabChild extends JSWindowActorChild {
     for (const [keys, command] of [
       ...Object.entries(bindings),
       ...Object.entries(ADDRESS_BINDINGS),
+      ...Object.entries(SELECT_BINDINGS),
     ]) {
       if (!commands.has(command)) {
         commands.set(command, []);

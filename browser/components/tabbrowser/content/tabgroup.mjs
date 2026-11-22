@@ -531,18 +531,44 @@ export class MozTabbrowserTabGroup extends MozXULElement {
 
       this.toggleAttribute("hasmultipletabs", tabCount > overflowOffset);
 
+      if (
+        window.gModalNavigation?.enabled &&
+        this.collapsed &&
+        this.hasActiveTab
+      ) {
+        const position = tabs.indexOf(gBrowser.selectedTab) + 1;
+        overflowCountLabel.textContent = `${position}/${tabCount}`;
+        document.l10n.setAttributes(
+          overflowCountLabel,
+          "modal-group-position",
+          {
+            position,
+            count: tabCount,
+          }
+        );
+        return;
+      }
+      overflowCountLabel.removeAttribute("data-l10n-id");
+      overflowCountLabel.removeAttribute("data-l10n-args");
+
       gBrowser.tabLocalization
         .formatValue("tab-group-overflow-count", {
           tabCount: tabCount - overflowOffset,
         })
-        .then(result => (overflowCountLabel.textContent = result));
+        .then(result => {
+          if (!overflowCountLabel.hasAttribute("data-l10n-id")) {
+            overflowCountLabel.textContent = result;
+          }
+        });
       gBrowser.tabLocalization
         .formatValue("tab-group-overflow-count-tooltip", {
           tabCount: tabCount - overflowOffset,
         })
         .then(result => {
-          overflowCountLabel.setAttribute("tooltiptext", result);
-          overflowCountLabel.setAttribute("aria-description", result);
+          if (!overflowCountLabel.hasAttribute("data-l10n-id")) {
+            overflowCountLabel.setAttribute("tooltiptext", result);
+            overflowCountLabel.setAttribute("aria-description", result);
+          }
         });
     }
   }

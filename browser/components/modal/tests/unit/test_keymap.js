@@ -2,15 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const { Keymap, hintLabels, keyToken } = ChromeUtils.importESModule(
-  "moz-src:///browser/components/modal/Keymap.sys.mjs"
-);
+const { Keymap, hintLabels, keyToken, SELECT_BINDINGS } =
+  ChromeUtils.importESModule(
+    "moz-src:///browser/components/modal/Keymap.sys.mjs"
+  );
 
 add_task(function sequences_and_counts() {
   const keys = new Keymap();
   Assert.equal(keys.feed("3"), null);
-  Assert.equal(keys.feed("g"), null);
-  Assert.deepEqual(keys.feed("n"), { command: "tab.next", count: 3 });
+  Assert.equal(keys.feed("t"), null);
+  Assert.deepEqual(keys.feed("j"), { command: "tab.next", count: 3 });
   keys.feed("g");
   keys.feed("z");
   Assert.deepEqual(keys.feed("j"), { command: "scroll.down", count: 1 });
@@ -24,6 +25,35 @@ add_task(function page_search_navigation_uses_n_and_N() {
   Assert.equal(keys.feed("n").command, "find.next");
   Assert.equal(keys.feed("N").command, "find.previous");
   Assert.equal(keys.feed("p"), null);
+});
+
+add_task(function tab_prefixes_have_no_terminal_conflicts() {
+  const keys = new Keymap({ "t t": "group.pick" });
+  const bindings = Object.keys(keys.bindings);
+  Assert.ok(
+    !bindings.includes("t t"),
+    "The removed group picker cannot be rebound"
+  );
+  for (const sequence of bindings) {
+    Assert.ok(
+      !bindings.some(other => other.startsWith(`${sequence} `)),
+      `${sequence} does not mask a longer command`
+    );
+  }
+  for (const sequence of ["g n", "g p", "g N", "g P", "t m", "t t"]) {
+    Assert.ok(
+      !bindings.includes(sequence),
+      `${sequence} is no longer a default binding`
+    );
+  }
+});
+
+add_task(function selection_counts_do_not_dispatch_page_scroll_commands() {
+  const keys = new Keymap({}, SELECT_BINDINGS);
+  keys.feed("5");
+  Assert.deepEqual(keys.feed("j"), { command: "selection.next", count: 5 });
+  Assert.deepEqual(keys.feed("k"), { command: "selection.previous", count: 1 });
+  Assert.equal(keys.feed("i"), null);
 });
 
 add_task(function bindings_and_modifiers() {

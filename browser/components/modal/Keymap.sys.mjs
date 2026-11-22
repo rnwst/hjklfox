@@ -18,8 +18,6 @@ export const DEFAULT_BINDINGS = Object.freeze({
   "g e": "scroll.end",
   "g h": "scroll.left-edge",
   "g l": "scroll.right-edge",
-  "g n": "tab.next",
-  "g p": "tab.previous",
   "C-o": "history.back",
   "C-i": "history.forward",
   "g w": "hint.follow",
@@ -31,6 +29,41 @@ export const DEFAULT_BINDINGS = Object.freeze({
   "Space m": "urlbar.bookmarks",
   "Space b": "urlbar.tabs",
   "Space s": "urlbar.search",
+  "t j": "tab.next",
+  "t n": "tab.new",
+  "t q": "tab.close",
+  "t v": "tab.select",
+  "t k": "tab.previous",
+  "t J": "tab.move-next",
+  "t K": "tab.move-previous",
+  "t h": "tab.first",
+  "t l": "tab.last",
+  "t H": "tab.move-first",
+  "t L": "tab.move-last",
+  "t g n": "group.new",
+  "t g m": "group.move",
+  "t g u": "group.ungroup",
+  "t g s": "group.select",
+  "t g f": "group.fold",
+  "t g o": "group.unfold",
+  "t g e": "group.edit",
+  "t g j": "tab.group-next",
+  "t g k": "tab.group-previous",
+  "t g J": "tab.group-move-next",
+  "t g K": "tab.group-move-previous",
+  "t g h": "tab.group-first",
+  "t g l": "tab.group-last",
+  "t g H": "tab.group-move-first",
+  "t g L": "tab.group-move-last",
+  "C-w n": "split.new",
+  "C-w q": "split.separate",
+});
+
+export const SELECT_BINDINGS = Object.freeze({
+  j: "selection.next",
+  k: "selection.previous",
+  h: "selection.first",
+  l: "selection.last",
 });
 
 export const ADDRESS_BINDINGS = Object.freeze({
@@ -68,9 +101,9 @@ export class Keymap {
     return new Keymap(overrides);
   }
 
-  constructor(overrides = {}) {
-    this.bindings = { ...DEFAULT_BINDINGS };
-    const commands = new Set(Object.values(DEFAULT_BINDINGS));
+  constructor(overrides = {}, defaults = DEFAULT_BINDINGS) {
+    this.bindings = { ...defaults };
+    const commands = new Set(Object.values(defaults));
     for (const [sequence, command] of Object.entries(overrides)) {
       if (command === null) {
         delete this.bindings[sequence];

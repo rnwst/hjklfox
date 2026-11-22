@@ -6,6 +6,8 @@ modal-mode-command = Command
 modal-mode-insert = Insert
 modal-mode-address = Address bar
 modal-mode-search = Page search
+# $count is the number of selected tabs.
+modal-mode-select = Tab selection ({ $count } selected)
 modal-hints-title = Page hints
 modal-hints-new-tab-title = Open a link in a new tab
 modal-hint-button = Button
@@ -31,6 +33,7 @@ modal-newtab-group-address-input = While editing the address bar
 modal-newtab-group-editing = Editing
 modal-newtab-group-scrolling = Scrolling
 modal-newtab-group-navigation = Tabs and history
+modal-newtab-group-tab-selection = While selecting tabs
 modal-newtab-group-find = Page search
 modal-newtab-group-hints = Link and button hints
 modal-newtab-group-other = Other shortcuts
@@ -56,6 +59,15 @@ modal-shortcut-find-next = Next submitted search match
 modal-shortcut-find-previous = Previous submitted search match
 modal-shortcut-tab-next = Next tab
 modal-shortcut-tab-previous = Previous tab
+modal-shortcut-tab-new = Open a new tab
+modal-shortcut-tab-close = Close the selected tabs
+modal-shortcut-tab-select = Enter tab selection mode; Escape keeps the selection
+modal-shortcut-selection-next = Move the tab-selection cursor forward
+modal-shortcut-selection-previous = Move the tab-selection cursor backward
+modal-shortcut-selection-first = Select the range from the anchor to the first tab
+modal-shortcut-selection-last = Select the range from the anchor to the last tab
+modal-shortcut-split-new = Create a split view and search for its second tab
+modal-shortcut-split-separate = Separate the tabs in the current split view
 modal-shortcut-history-back = Back in history
 modal-shortcut-history-forward = Forward in history
 modal-shortcut-hint-follow = Follow a link or activate a button using its label
@@ -70,3 +82,47 @@ modal-shortcut-urlbar-search = Start a new search with the default search engine
 modal-shortcut-address-next = Select the next suggestion
 modal-shortcut-address-previous = Select the previous suggestion
 modal-shortcut-address-engines = Open or close the engine picker without clearing your query
+
+modal-shortcut-tab-group-next = Next tab within the current group
+modal-shortcut-tab-group-previous = Previous tab within the current group
+modal-shortcut-tab-move-next = Move the current tab forward
+modal-shortcut-tab-move-previous = Move the current tab backward
+modal-shortcut-tab-group-move-next = Move the current tab forward within its group, wrapping at the end
+modal-shortcut-tab-group-move-previous = Move the current tab backward within its group, wrapping at the start
+modal-shortcut-tab-first = Switch to the first tab
+modal-shortcut-tab-last = Switch to the last tab
+modal-shortcut-tab-move-first = Move the current tab to the beginning of the tab strip
+modal-shortcut-tab-move-last = Move the current tab to the end of the tab strip
+modal-shortcut-tab-group-first = Switch to the first tab within the current group
+modal-shortcut-tab-group-last = Switch to the last tab within the current group
+modal-shortcut-tab-group-move-first = Move the current tab to the beginning of its group
+modal-shortcut-tab-group-move-last = Move the current tab to the end of its group
+modal-shortcut-group-new = Create a named group with the selected tabs
+modal-shortcut-group-move = Move the selected tabs to a group
+modal-shortcut-group-ungroup = Remove the selected tabs from their groups
+modal-shortcut-group-select = Select all tabs in the current group
+modal-shortcut-group-fold = Fold the current group
+modal-shortcut-group-unfold = Unfold the current group
+modal-shortcut-group-edit = Edit the current group’s name and colour
+modal-urlbar-group-move = Find a destination group in this window. Control-N and Control-P select suggestions. Enter moves the selected tabs. Escape cancels.
+modal-group-pinned = Unpin this tab before adding it to a group.
+# $name is the group name; $count is its number of tabs.
+modal-group-result =
+    { $count ->
+        [one] { $name } — { $count } tab
+       *[other] { $name } — { $count } tabs
+    }
+# $name is the group name; $count is its number of tabs.
+modal-group-folded-result =
+    { $count ->
+        [one] { $name } — { $count } tab (folded)
+       *[other] { $name } — { $count } tabs (folded)
+    }
+# $title is a tab title; $name is its group name.
+modal-tab-group-result = { $title } — { $name }
+# $title is a tab title; $name is its group name.
+modal-tab-folded-result = { $title } — { $name } (folded)
+# $position is the active tab’s one-based position; $count is the group size.
+modal-group-position = { $position }/{ $count }
+    .tooltiptext = Tab { $position } of { $count }
+    .aria-description = Tab { $position } of { $count }

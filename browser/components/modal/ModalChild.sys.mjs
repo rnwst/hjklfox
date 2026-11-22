@@ -27,6 +27,29 @@ export class ModalChild extends JSWindowActorChild {
   }
 
   handleKeyboardEvent(event) {
+    if (
+      this.insertMode &&
+      event.type === "keydown" &&
+      !event.isComposing &&
+      ["Tab", "ArrowDown"].includes(event.key) &&
+      !event.shiftKey &&
+      !event.ctrlKey &&
+      !event.altKey &&
+      !event.metaKey &&
+      this.document.documentURI === "about:opentabs" &&
+      event
+        .composedPath()
+        .some(element => element.localName === "moz-input-search")
+    ) {
+      const row =
+        this.document.querySelector("splitview-opentabs")?.sidebarTabList
+          ?.rowEls[0];
+      if (row) {
+        row.focus();
+        event.preventDefault();
+        return;
+      }
+    }
     const arrow = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(
       event.key
     );
@@ -136,6 +159,8 @@ export class ModalChild extends JSWindowActorChild {
 
   receiveMessage({ name, data }) {
     switch (name) {
+      case "Modal:FocusSplitPicker":
+        return this.focusSplitPicker();
       case "Modal:Mode":
         this.insertMode = data.insert;
         break;
@@ -259,6 +284,26 @@ export class ModalChild extends JSWindowActorChild {
       }
     }
     return null;
+  }
+
+  async focusSplitPicker() {
+    const doc = this.document;
+    if (doc.documentURI !== "about:opentabs") {
+      return;
+    }
+    await this.contentWindow.customElements.whenDefined("splitview-opentabs");
+    const picker = doc.querySelector("splitview-opentabs");
+    await picker?.updateComplete;
+    const search = picker?.searchTextbox;
+    await search?.updateComplete;
+    if (
+      this.document === doc &&
+      this.insertMode &&
+      doc.hasFocus() &&
+      doc.visibilityState === "visible"
+    ) {
+      search?.inputEl?.focus();
+    }
   }
 
   setKeyBackdrop(bounds) {

@@ -419,8 +419,8 @@ add_task(async function tabs_and_hints() {
         gBrowser.tabContainer,
         "TabSelect"
       );
-      EventUtils.synthesizeKey("g");
-      EventUtils.synthesizeKey("n");
+      EventUtils.synthesizeKey("t");
+      EventUtils.synthesizeKey("j");
       await switched;
       Assert.equal(gBrowser.selectedTab, other);
       Assert.equal(gModalNavigation.mode, "command");

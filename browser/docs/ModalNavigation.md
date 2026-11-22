@@ -9,11 +9,12 @@ fork choices. There is no command prompt.
 ## Modes and focus
 
 Each browser window owns one active interaction mode: command, insert, address
-bar, or page search. Switching between existing tabs returns to command mode;
+bar, page search, or tab selection. Switching between existing tabs returns to command mode;
 neither page editing nor address/find-field focus is restored from a tab. Opening a new tab
-with Ctrl-t can focus its address bar for a new navigation, but revisiting that
+with `tn` focuses its address bar for a new navigation, but revisiting that
 tab does not restore address mode. Navigating to a new document also returns to
-command mode. Page autofocus does not enter insert mode. Clicking or tabbing into
+command mode, except while selecting tabs: tab selection survives page loads.
+Page autofocus does not enter insert mode. Clicking or tabbing into
 an editable field does. Pressing `i` enables insert mode and restores the last
 editor in the focused frame if it is still present.
 An explicitly focused control takes precedence over restoring the last editor.
@@ -24,7 +25,7 @@ outside insert mode. Firefox's own shortcuts remain
 available. Tab can move focus and Enter can activate a link or button without
 exposing the keys to page scripts; scripts can still respond to the resulting
 focus changes and clicks. In insert mode, page input works normally, except that
-Escape is withheld from the page. A blocked key that starts outside insert mode cannot
+Escape and the command-only Ctrl-w prefix are withheld from the page. A blocked key that starts outside insert mode cannot
 leak its release or repeat into a newly focused editor. Address-bar focus enters
 its own mode, with normal text editing and the native blue focus border; it never
 applies the green insert-mode toolbar tint.
@@ -51,9 +52,10 @@ Tab, mouse clicks, or programmatic focus. The address and find fields remain
 available through their explicit commands or direct interaction, but are skipped
 by page Tab traversal. Native menus and dialogs retain their own input handling.
 
-The navigation toolbar has a prominent green fill in insert mode, blended with the
-current theme. There is no visible mode text badge. A visually hidden localized
-status announcement identifies mode changes to assistive technology. In forced
+The navigation toolbar has a prominent green fill in insert mode and an amber
+fill in tab selection mode, blended with the current theme. There is no visible
+mode text badge. A visually hidden localized status announcement identifies
+mode changes to assistive technology. In forced
 colors, the tint is omitted.
 
 ## Default bindings
@@ -65,7 +67,25 @@ colors, the tint is omitted.
 | `Ctrl-f`, `Ctrl-b` | Scroll a full viewport down or up |
 | `gg`, `ge` | Scroll to the beginning or end |
 | `gh`, `gl` | Scroll to the left or right edge |
-| `gn`, `gp` | Next or previous tab |
+| `tj`, `tk` | Next or previous tab |
+| `tn` | Open a new tab |
+| `tq` | Close all selected tabs, or the current tab |
+| `tv` | Enter tab selection mode |
+| `tJ`, `tK` | Move the current tab forward or backward |
+| `th`, `tl` | Switch to the first or last tab |
+| `tH`, `tL` | Move the current tab to the beginning or end of the tab strip |
+| `tgj`, `tgk` | Next or previous tab within the current group |
+| `tgJ`, `tgK` | Move the current tab within its group, wrapping at the edges |
+| `tgh`, `tgl` | Switch to the first or last tab within the current group |
+| `tgH`, `tgL` | Move the current tab to the beginning or end of its group |
+| `tgn` | Create a named group with the selected tabs |
+| `tgm` | Move the selected tabs to an existing group |
+| `tgu` | Remove the selected tabs from their groups |
+| `tgs` | Select all tabs in the current group |
+| `tgf`, `tgo` | Fold or unfold the current group |
+| `tge` | Edit the current group’s name and colour |
+| `Ctrl-w n` | Create a split view and focus its native tab picker |
+| `Ctrl-w q` | Separate the current split view, keeping its tabs open |
 | `Ctrl-o`, `Ctrl-i` | History back or forward |
 | `gw` | Follow a link or activate a button by its letter label |
 | `gW` | Open a visible link in a new tab by its letter label |
@@ -79,13 +99,13 @@ colors, the tint is omitted.
 | `Space b` | Start a new open-tab search in the address bar |
 | `Space s` | Start a new search with the default search engine |
 
-Numeric prefixes apply to scrolling and tab switching, for example `5j` and
-`3gn`. Counts are capped at 999. Keys use logical characters, rather than fixed
-physical keyboard positions. In command mode, matching modal bindings override
+Numeric prefixes apply to scrolling, tab switching, and tab movement, for example
+`5j`, `3tj`, and `3tJ`. Counts are capped at 999. Keys use logical characters,
+rather than fixed physical keyboard positions. In command mode, matching modal bindings override
 Firefox's existing bindings, such as `Ctrl-u` for View Source. Insert mode keeps
 Firefox's native shortcuts.
 
-Starting a sequence such as `Space` or `g` opens a small completion popup at the
+Starting a sequence such as `Space`, `g`, or `t` opens a small completion popup at the
 top right, below the navigation toolbar. It shows the remaining keys and their
 actions using your current bindings, including custom sequences. Keep typing to
 complete the shortcut; the popup does not take focus. Escape, an unmatched key,
@@ -93,6 +113,9 @@ changing tabs, or leaving command mode dismisses it.
 The popup uses the available page height, minus margins, before scrolling.
 
 Alt-d and Ctrl-l no longer focus the address bar; use Space-f from command mode.
+Ctrl-t and Ctrl-w no longer open or close tabs, including in insert mode. Use
+`tn` and `tq` in command mode. Ctrl-w starts a split-command sequence only in
+command mode; press and release Ctrl-w, then `n` or `q`.
 
 The JSON string preference `browser.modal.keybindings` overrides defaults. For
 example:
@@ -107,6 +130,115 @@ Control, such as `C-d` or `Space f`.
 in command mode. Command identifiers and defaults are in `Keymap.sys.mjs`;
 unknown command identifiers are ignored. Escape remains the fixed cancellation
 key. Avoid assigning a complete command to a prefix used by longer sequences.
+
+## Tab groups
+
+Ordinary `tj` and `tk` navigation treats each folded group as one stop, using
+its last-active eligible tab. Unfolded groups contribute every tab. Counts such
+as `3tj` count these stops, so hidden members do not change the destination.
+Navigation wraps around the window.
+
+`tgj` and `tgk` cycle within the current group, wrapping at its boundaries and
+supporting counts. They work with folded and unfolded groups and do nothing on
+ungrouped tabs. Navigation never changes a group's folded state. A folded group
+shows its active tab with a position such as `2/6` instead of an additional-tab
+count. If its last-active tab disappears, navigation uses the most recently
+active remaining eligible member, falling back to tab order.
+
+`tJ` and `tK` move the current tab forward and backward, keeping it selected.
+Counts use the same stops as `tj` and `tk`: a folded group counts once, while
+each member of an unfolded group counts separately. Moving past a folded group
+places the tab outside it; targeting an unfolded member places it next to that
+member inside the group. Tabs can leave their group in either direction,
+including at the beginning or end of the tab strip. Moves do not wrap around
+the window or cross the pinned/unpinned boundary. Split views move as a unit.
+
+`tgJ` and `tgK` reorder the current tab only within its group. They support counts
+and wrap at the group edges: moving forward from the last position puts the tab
+first; moving backward from the first puts it last. They work in folded groups
+without unfolding them, keep the moved tab selected, and do nothing on an
+ungrouped tab. For example, `2tgJ` moves two positions within the group.
+
+`th` and `tl` select the first and last navigation stops in the window, using
+the last-active member when the endpoint is a folded group. `tgh` and `tgl`
+select the first and last eligible members of the current group.
+
+`tH` and `tL` move the current tab to the beginning and end of the tab strip,
+leaving its group. Pinned tabs stay in the pinned section; unpinned tabs stay
+after it. `tgH` and `tgL` instead move to the first and last positions within
+the current group. These commands preserve selection and folding. Group-scoped
+navigation and reordering do nothing on ungrouped tabs. Endpoint commands ignore numeric prefixes;
+hidden and closing tabs are excluded from navigation and endpoint selection.
+
+`tgn` creates a group with the selected tabs and opens Firefox's native
+“Create tab group” popup, with the name field focused and colour choices
+available. Enter confirms; Escape cancels and ungroups the tabs using Firefox's
+native cancellation behaviour. `tgm` uses the address bar to search existing
+groups in the current window. Both use the native multi-tab selection, falling
+back to the current tab when no other tabs are selected. A split view stays
+intact when both members are selected. If only one member is selected, it is
+separated before grouping; the unselected partner remains open in its original
+group, if any. Pinned tabs are excluded from grouping. `tgu` removes the selected
+tabs or split views from their groups without closing them.
+
+`tgf` and `tgo` explicitly fold and unfold the current group without
+changing the selected tab. `tge` opens Firefox's native group editor for
+name and colour changes. The `tgm` destination picker shows group sizes and
+folded state; use Ctrl-n/Ctrl-p and Enter to choose, or Escape to cancel.
+
+`tgs` selects all eligible tabs in the current group, unfolding it if needed.
+It replaces the previous selection, keeps the displayed tab unchanged, and
+stays in command mode so grouping or closing commands can act on the selection
+immediately. It does nothing on an ungrouped tab.
+
+`Space b` includes folded-group members and matches group names as well as tab
+titles and URLs. Selecting a result activates that exact tab, even if other tabs
+have the same URL, and leaves the group's folded state unchanged. Genuinely
+hidden tabs remain excluded; the tab picker's private-window and container
+restrictions still apply.
+
+## Tab selection
+
+`tv` starts a fresh selection anchored at the current tab. The displayed tab
+and anchor stay fixed; an outline on the tab strip marks a separate selection
+cursor. The toolbar turns amber while this mode is active. Page loads do not
+exit this mode or reset the anchor, cursor, or selection. In this mode:
+
+| Keys | Action |
+| --- | --- |
+| `j`, `k` | Move the selection cursor forward or backward and update the range |
+| `h`, `l` | Move the selection cursor to the first or last tab and update the range |
+| `Esc` | Return to command mode, retaining the selection |
+
+Counts work, for example `5j` moves the cursor forward five tabs. The selected
+range always runs from the anchor to the cursor, inclusive. Reversing direction
+shrinks it; crossing the anchor extends it in the opposite direction. For example,
+`j` followed by `k` leaves only the original tab selected. Selection stops at
+the window edges instead of wrapping.
+Hidden and closing tabs are excluded. Entering a folded group unfolds it
+permanently and selects its leftmost member when moving forward or its rightmost
+member when moving backward. Every traversed tab counts individually; range
+selection unfolds all groups it crosses. Split-view members count as individual
+tabs: selecting one does not select its partner unless both fall within the range.
+
+After Escape, use `tgn` to create a group, `tgm` to add the selection to an
+existing group, or `tq` to close all selected tabs. Reentering `tv` resets the
+selection to the displayed tab. Ordinary tab switches retain Firefox's native
+selection-clearing behaviour.
+
+## Split views
+
+In command mode, `Ctrl-w n` splits the current tab with Firefox's native
+`about:opentabs` picker. Its search field receives focus in insert mode, ready
+for typing. Tab or Arrow Down from the search field focuses the first result;
+use the native list's keyboard navigation and Enter to choose the second tab.
+Choosing a tab returns to command mode.
+
+`Ctrl-w q` separates the current split view without closing either normal tab.
+If the second side is still the native picker, Firefox removes that temporary
+tab. Leave insert mode with Escape before using a split command. Split creation
+uses Firefox's native restrictions, including excluding pinned and already-split
+source tabs.
 
 ## Page search
 
@@ -123,7 +255,8 @@ Escape while editing cancels the search, hides the bar, and clears highlighting,
 including in other frames
 and PDFs. Highlighting is visible only while the search bar is visible. Escape
 in command mode leaves the bar alone; press `/` then Escape to close it.
-Tab-manipulation shortcuts such as Ctrl-t can still leave search mode.
+Native tab-switching shortcuts can still leave search mode. To open a tab with
+`tn`, first return to command mode with Escape.
 In insert mode, `/` is passed to the page normally and does not open Firefox's
 find bar.
 
@@ -214,6 +347,7 @@ update when the keybinding preference changes. Disabling modal navigation hides
 the guide. Explicit Firefox Home or extension new-tab choices remain in effect.
 An address-mode section lists Ctrl-n/Ctrl-p suggestion selection and Ctrl-Space
 engine selection from the bindings used by the address-bar handler.
+The tab-selection section lists its separate selection bindings.
 The startup home page also defaults to `about:newtab` so the reference appears
 when opening the browser. Explicitly opening `about:blank` remains blank, and
 `browser.toolbars.bookmarks.visibility` defaults to `never`.

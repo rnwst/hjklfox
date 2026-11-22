@@ -10,9 +10,35 @@ function finishImage(response) {
   response.finish();
 }
 
+function finishDocument(response) {
+  response.setHeader("Content-Type", "text/html", false);
+  response.write(
+    "<!doctype html><title>Completed modal navigation</title><p>Loaded</p>"
+  );
+  response.finish();
+}
+
 function handleRequest(request, response) {
   response.setHeader("Cache-Control", "no-store", false);
-  if (request.queryString === "image") {
+  if (request.queryString === "document") {
+    response.processAsync();
+    if (getState("finish-document") === "yes") {
+      setState("finish-document", "");
+      finishDocument(response);
+    } else {
+      setObjectState("document", response);
+    }
+  } else if (request.queryString === "finish-document") {
+    getObjectState("document", documentResponse => {
+      if (documentResponse) {
+        finishDocument(documentResponse);
+        setObjectState("document", null);
+      } else {
+        setState("finish-document", "yes");
+      }
+    });
+    response.write("OK");
+  } else if (request.queryString === "image") {
     response.processAsync();
     if (getState("finish") === "yes") {
       setState("finish", "");

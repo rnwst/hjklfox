@@ -20,6 +20,8 @@ prefs = ["browser.modal.enabled=true", "general.smoothScroll=false"]
 
 ["browser_modal_fullscreen.js"]
 
+["browser_modal_groups.js"]
+
 ["browser_modal_key_popup.js"]
 
 ["browser_modal_keyboard.js"]
@@ -38,5 +40,9 @@ skip-if = [
 
 ["browser_modal_search_privacy.js"]
 support-files = ["!/browser/components/urlbar/tests/browser/searchSuggestionEngine.sjs"]
+
+["browser_modal_selection.js"]
+
+["browser_modal_split.js"]
 
 ["browser_modal_urlbar.js"]

@@ -23,12 +23,21 @@ handoff is not a roadmap.
 
 ## Behavioral principles
 
-- Distinguish **command**, **insert**, **address-bar**, and **page-search** modes.
-  Pages receive keyboard events in insert mode, excluding Escape, and arrow-key
+- Distinguish **command**, **insert**, **address-bar**, **page-search**, and
+  **tab-selection** modes. Pages receive keyboard events in insert mode,
+  excluding Escape and the command-only Ctrl-w prefix, and arrow-key
   events in command mode. Keep
   native browser shortcuts and Tab/Enter defaults without exposing their keys to
   page scripts. Explicit editing focus enters insert mode; unsolicited page
   autofocus must not. Mode-changing keys must not leak their repeats or releases.
+- Tab selection uses native Firefox multiselection, a fixed anchor, and a separate
+  cursor, without changing the displayed tab. Reversing the cursor shrinks the
+  range. Split-view members are selected individually; grouping only one member
+  separates it first. Traversing a folded group unfolds it permanently.
+  Page loads do not exit tab-selection mode or reset its range.
+  An amber toolbar fill identifies selection mode. Escape retains the selection
+  for grouping or closing. Split creation uses the native tab picker,
+  deliberately focusing its search field in insert mode.
 - Insert mode uses a prominent theme-aware green toolbar fill. Address-bar mode uses
   native address-bar focus styling and never the green tint. Do not add a visible
   mode text badge.

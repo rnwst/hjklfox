@@ -7,6 +7,11 @@
     --modal-toolbar-background-color: color-mix(in srgb, var(--toolbar-background-color) 25%, var(--background-color-success));
     background-color: var(--modal-toolbar-background-color);
   }
+
+  :root[modal-mode="select"] #nav-bar {
+    --modal-toolbar-background-color: color-mix(in srgb, var(--toolbar-background-color) 25%, var(--background-color-warning));
+    background-color: var(--modal-toolbar-background-color);
+  }
 }
 
 #modal-mode-indicator {
@@ -111,4 +116,9 @@
 .modal-key-completions-content p {
   margin: 0;
   color: var(--text-color-deemphasized);
+}
+
+.tabbrowser-tab[modal-selection-cursor] .tab-background {
+  outline: var(--focus-outline-width) solid var(--focus-outline-color);
+  outline-offset: calc(-1 * var(--focus-outline-width));
 }

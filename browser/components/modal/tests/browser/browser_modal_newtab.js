@@ -4,9 +4,10 @@
 
 /* global gModalNavigation */
 
-const { DEFAULT_BINDINGS, ADDRESS_BINDINGS } = ChromeUtils.importESModule(
-  "moz-src:///browser/components/modal/Keymap.sys.mjs"
-);
+const { DEFAULT_BINDINGS, ADDRESS_BINDINGS, SELECT_BINDINGS } =
+  ChromeUtils.importESModule(
+    "moz-src:///browser/components/modal/Keymap.sys.mjs"
+  );
 
 add_setup(async function setup() {
   await SpecialPowers.pushPrefEnv({
@@ -21,6 +22,7 @@ add_task(async function guide_covers_current_commands() {
   const bindings = [
     ...Object.entries(DEFAULT_BINDINGS),
     ...Object.entries(ADDRESS_BINDINGS),
+    ...Object.entries(SELECT_BINDINGS),
   ];
   const commands = [...new Set(bindings.map(([, command]) => command))];
   const ids = commands.map(
@@ -56,7 +58,7 @@ add_task(async function guide_covers_current_commands() {
         content.getComputedStyle(doc.querySelector("dl")).display,
         "block"
       );
-      Assert.equal(doc.querySelectorAll("main section h2").length, 7);
+      Assert.equal(doc.querySelectorAll("main section h2").length, 8);
       Assert.ok(
         doc.querySelector('[data-group="address-input"] [data-keys="C-n"]')
       );
@@ -122,7 +124,12 @@ add_task(async function guide_tracks_live_overrides_and_disabling() {
         await ContentTaskUtils.waitForCondition(() =>
           doc.querySelector('[data-keys="z"]')
         );
-        Assert.ok(!doc.querySelector('[data-keys="j"]'));
+        Assert.ok(
+          !doc.querySelector('[data-command="scroll.down"] [data-keys="j"]')
+        );
+        Assert.ok(
+          doc.querySelector('[data-command="selection.next"] [data-keys="j"]')
+        );
         Assert.ok(doc.querySelector('[data-keys="g t"]'));
         Assert.equal(
           doc.querySelector('[data-command="scroll.page-up"] kbd').textContent,
@@ -134,7 +141,9 @@ add_task(async function guide_tracks_live_overrides_and_disabling() {
     }
     await SpecialPowers.spawn(browser, [], async () => {
       await ContentTaskUtils.waitForCondition(() =>
-        content.document.querySelector('[data-keys="j"]')
+        content.document.querySelector(
+          '[data-command="scroll.down"] [data-keys="j"]'
+        )
       );
       Assert.ok(!content.document.querySelector('[data-keys="z"]'));
     });

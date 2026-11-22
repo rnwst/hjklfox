@@ -6,10 +6,12 @@ import {
   Keymap,
   keyToken,
   hintLabels,
+  SELECT_BINDINGS,
 } from "moz-src:///browser/components/modal/Keymap.sys.mjs";
 import { configureSimplifiedChrome } from "moz-src:///browser/components/modal/SimplifiedChrome.sys.mjs";
 import { ModalKeyPopup } from "moz-src:///browser/components/modal/ModalKeyPopup.sys.mjs";
 import { ModalFind } from "moz-src:///browser/components/modal/ModalFind.sys.mjs";
+import { ModalTabs } from "moz-src:///browser/components/modal/ModalTabs.sys.mjs";
 
 const PREF = "browser.modal.enabled";
 const KEYMAP_PREF = "browser.modal.keybindings";
@@ -39,6 +41,7 @@ export class ModalNavigation {
     configureSimplifiedChrome(win);
     this.window = win;
     this.find = new ModalFind(this);
+    this.tabs = new ModalTabs(win);
     this.keyPopup = new ModalKeyPopup(win);
     this.mode = "command";
     this.suppressed = new Set();
@@ -185,6 +188,7 @@ export class ModalNavigation {
   }
 
   configure() {
+    this.selectionKeymap = new Keymap({}, SELECT_BINDINGS);
     this.keymap = Keymap.fromJSON(
       Services.prefs.getStringPref(KEYMAP_PREF, "{}")
     );
@@ -238,6 +242,12 @@ export class ModalNavigation {
     if (mode !== "search") {
       this.find.cancel();
     }
+    if (mode !== "select") {
+      this.tabs.setSelectionCursor(null);
+    }
+    if (mode !== "insert") {
+      this.splitPickerBrowser = null;
+    }
     this.cancelHints();
     this.resetKeys();
     this.mode = mode;
@@ -255,7 +265,15 @@ export class ModalNavigation {
   }
 
   updateIndicator() {
-    if (this.hints) {
+    if (this.mode === "select") {
+      this.window.document.l10n.setAttributes(
+        this.indicator,
+        "modal-mode-select",
+        {
+          count: this.window.gBrowser.selectedTabs.length,
+        }
+      );
+    } else if (this.hints) {
       this.window.document.l10n.setAttributes(
         this.indicator,
         this.hints.newTab ? "modal-mode-hints-new-tab" : "modal-mode-hints",
@@ -287,11 +305,49 @@ export class ModalNavigation {
       this.window.gBrowser.selectedBrowser.browsingContext.currentWindowGlobal
         ?.innerWindowId;
     if (id && id !== this.documentId) {
-      if (this.chromeEditing) {
+      if (
+        this.chromeEditing ||
+        this.mode === "select" ||
+        (this.splitPickerBrowser === this.window.gBrowser.selectedBrowser &&
+          ["about:blank", "about:opentabs"].includes(
+            this.splitPickerBrowser.currentURI.spec
+          ))
+      ) {
         this.documentId = id;
       } else {
         this.setMode("command");
       }
+    }
+  }
+
+  openSplit() {
+    const browser = this.window.gBrowser;
+    const previous = browser.selectedTab;
+    this.window.BrowserCommands.addTabSplitView();
+    if (browser.selectedTab !== previous) {
+      this.splitPickerBrowser = browser.selectedBrowser;
+      this.setMode("insert");
+      this.splitPickerBrowser.focus();
+    }
+  }
+
+  async focusSplitPicker(actor) {
+    const browser = this.splitPickerBrowser;
+    if (
+      !browser ||
+      browser !== this.window.gBrowser.selectedBrowser ||
+      this.mode !== "insert" ||
+      actor.manager.documentURI.spec !== "about:opentabs"
+    ) {
+      return;
+    }
+    try {
+      await actor.sendQuery("Modal:FocusSplitPicker");
+    } catch {
+      // The picker may have navigated or closed while its components initialized.
+    }
+    if (this.splitPickerBrowser === browser) {
+      this.splitPickerBrowser = null;
     }
   }
 
@@ -477,6 +533,10 @@ export class ModalNavigation {
     }
     this.tabFocusPending =
       event.key === "Tab" && !event.ctrlKey && !event.altKey && !event.metaKey;
+    if (keyToken(event) === "C-w" && this.mode !== "command") {
+      this.consume(event);
+      return;
+    }
     if ([win.document.body, win.document.documentElement].includes(active)) {
       const tabFocusPending = this.tabFocusPending;
       this.chromeEditing = false;
@@ -523,6 +583,10 @@ export class ModalNavigation {
     if (this.mode === "insert") {
       return;
     }
+    this.handleCommandKey(event);
+  }
+
+  handleCommandKey(event) {
     const token = keyToken(event);
     if (token === null) {
       this.resetKeys();
@@ -534,14 +598,23 @@ export class ModalNavigation {
       this.filterHints(event.key);
       return;
     }
-    if (!printable && !this.keymap.accepts(token)) {
+    const keymap = this.mode === "select" ? this.selectionKeymap : this.keymap;
+    if (!printable && !keymap.accepts(token)) {
       this.resetKeys();
       return;
     }
     this.consume(event);
-    const action = this.keymap.feed(token);
-    this.keyPopup.update(this.keymap).catch(console.error);
-    if (action && (!event.repeat || action.command.startsWith("scroll."))) {
+    const action = keymap.feed(token);
+    if (this.hints && !printable && keymap.prefix) {
+      this.cancelHints();
+    }
+    this.keyPopup.update(keymap).catch(console.error);
+    if (
+      action &&
+      (!event.repeat ||
+        action.command.startsWith("scroll.") ||
+        action.command.startsWith("selection."))
+    ) {
       if (this.hints && !action.command.startsWith("scroll.")) {
         this.cancelHints();
       }
@@ -593,6 +666,7 @@ export class ModalNavigation {
 
   resetKeys() {
     this.keymap.reset();
+    this.selectionKeymap.reset();
     this.keyPopup.hide();
   }
 
@@ -603,6 +677,7 @@ export class ModalNavigation {
     }
     if (
       this.mode === "insert" ||
+      this.mode === "select" ||
       this.find.opening ||
       this.hints ||
       this.keymap.prefix ||
@@ -633,19 +708,52 @@ export class ModalNavigation {
     ) {
       return;
     }
+    this.enterCommand();
+  }
+
+  enterCommand() {
     this.chromeEditing = false;
     this.setMode("command");
-    browser.focus();
+    this.window.gBrowser.selectedBrowser.focus();
     send(this.focusedActor(), "Modal:Blur");
   }
 
   execute({ command, count }) {
+    if (command.startsWith("group.")) {
+      this.tabs.execute(command.slice("group.".length));
+      return;
+    }
     if (command.startsWith("urlbar.")) {
       this.urlbar.open(command.slice("urlbar.".length)).catch(console.error);
       return;
     }
     const browser = this.window.gBrowser;
     switch (command) {
+      case "tab.new":
+        this.window.BrowserCommands.openTab();
+        break;
+      case "tab.close":
+        this.window.BrowserCommands.closeTabOrWindow();
+        break;
+      case "tab.select":
+        this.tabs.startSelection();
+        break;
+      case "selection.next":
+      case "selection.previous":
+      case "selection.first":
+      case "selection.last":
+        this.tabs.extendSelection(
+          command === "selection.next" || command === "selection.last" ? 1 : -1,
+          count,
+          command === "selection.first" || command === "selection.last"
+        );
+        break;
+      case "split.new":
+        this.openSplit();
+        break;
+      case "split.separate":
+        this.window.BrowserCommands.separateTabSplitView();
+        break;
       case "find.open":
         this.find.open().catch(console.error);
         break;
@@ -657,14 +765,45 @@ export class ModalNavigation {
         this.setMode("insert");
         send(this.focusedActor(), "Modal:Insert");
         break;
+      case "tab.first":
+      case "tab.last":
+      case "tab.group-first":
+      case "tab.group-last":
+        this.tabs.edge(
+          command.endsWith("last") ? 1 : -1,
+          false,
+          command.startsWith("tab.group-")
+        );
+        break;
+      case "tab.move-first":
+      case "tab.move-last":
+      case "tab.group-move-first":
+      case "tab.group-move-last":
+        this.tabs.edge(
+          command.endsWith("last") ? 1 : -1,
+          true,
+          command.startsWith("tab.group-")
+        );
+        break;
+      case "tab.move-next":
+      case "tab.move-previous":
+      case "tab.group-move-next":
+      case "tab.group-move-previous":
+        this.tabs.move(
+          command.endsWith("next") ? 1 : -1,
+          count,
+          command.startsWith("tab.group-")
+        );
+        break;
       case "tab.next":
       case "tab.previous":
-        for (let i = 0; i < count; i++) {
-          browser.tabContainer.advanceSelectedTab(
-            command === "tab.next" ? 1 : -1,
-            true
-          );
-        }
+      case "tab.group-next":
+      case "tab.group-previous":
+        this.tabs.cycle(
+          command.endsWith("next") ? 1 : -1,
+          count,
+          command.startsWith("tab.group-")
+        );
         break;
       case "history.back":
         if (browser.selectedBrowser.canGoBack) {

@@ -278,7 +278,12 @@ add_task(
       await TestUtils.waitForCondition(() => gURLBar.focused);
       EventUtils.sendString("unfinished destination");
       const opened = BrowserTestUtils.waitForNewTab(gBrowser, "about:newtab");
-      EventUtils.synthesizeKey("t", { accelKey: true });
+      EventUtils.synthesizeKey("KEY_Escape");
+      await TestUtils.waitForCondition(
+        () => gModalNavigation.mode === "command"
+      );
+      EventUtils.synthesizeKey("t");
+      EventUtils.synthesizeKey("n");
       const other = await opened;
       try {
         await TestUtils.waitForCondition(

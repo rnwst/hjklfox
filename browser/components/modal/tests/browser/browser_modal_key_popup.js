@@ -81,6 +81,65 @@ add_task(async function prefixes_show_available_keys_without_taking_focus() {
     Assert.equal(gModalNavigation.keymap.prefix, "");
     Assert.equal(gModalNavigation.mode, "command");
 
+    await openPrefix("t");
+    Assert.deepEqual(
+      [...panel.querySelectorAll("[data-keys]")].map(row => row.dataset.keys),
+      [
+        "j",
+        "n",
+        "q",
+        "v",
+        "k",
+        "J",
+        "K",
+        "h",
+        "l",
+        "H",
+        "L",
+        "g n",
+        "g m",
+        "g u",
+        "g s",
+        "g f",
+        "g o",
+        "g e",
+        "g j",
+        "g k",
+        "g J",
+        "g K",
+        "g h",
+        "g l",
+        "g H",
+        "g L",
+      ]
+    );
+    EventUtils.synthesizeKey("g");
+    await TestUtils.waitForCondition(() =>
+      panel.querySelector('[data-keys="n"]')
+    );
+    Assert.deepEqual(
+      [...panel.querySelectorAll("[data-keys]")].map(row => row.dataset.keys),
+      [
+        "n",
+        "m",
+        "u",
+        "s",
+        "f",
+        "o",
+        "e",
+        "j",
+        "k",
+        "J",
+        "K",
+        "h",
+        "l",
+        "H",
+        "L",
+      ]
+    );
+    EventUtils.synthesizeKey("KEY_Escape");
+    await closed();
+
     await openPrefix(" ");
     EventUtils.synthesizeKey("z");
     await closed();
