@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const HINT_TARGETS = "a[href], button, input, textarea, [contenteditable]";
+const HINT_BUTTONS = 'button, [role="button"]';
+const HINT_TARGETS = `a[href], ${HINT_BUTTONS}, input, textarea, [contenteditable]`;
 
 /** Frame-local editing, scrolling, and anonymous page-hint overlays. */
 export class ModalChild extends JSWindowActorChild {
@@ -92,12 +93,14 @@ export class ModalChild extends JSWindowActorChild {
     if (this.newTabHint) {
       return false;
     }
+    if (element.matches(HINT_BUTTONS)) {
+      return true;
+    }
     if (element.matches("input, textarea")) {
       return this.isEditable(element);
     }
     return (
-      element.matches("button") ||
-      (element.isContentEditable && !element.parentElement?.isContentEditable)
+      element.isContentEditable && !element.parentElement?.isContentEditable
     );
   }
 
@@ -409,7 +412,7 @@ export class ModalChild extends JSWindowActorChild {
   }
 
   targetName(target) {
-    if (!target.matches("a[href], button")) {
+    if (!target.matches(`a[href], ${HINT_BUTTONS}`)) {
       return (
         target.getAttribute("aria-label") ||
         Array.from(target.labels || [], label => label.textContent.trim())
@@ -477,8 +480,8 @@ export class ModalChild extends JSWindowActorChild {
       );
       this.scheduleRefresh();
     });
-    for (const root of this.hintRoots) {
-      this.observeHintRoot(root);
+    for (const hintRoot of this.hintRoots) {
+      this.observeHintRoot(hintRoot);
     }
     this.needsRetarget = true;
     this.scheduleRefresh();

@@ -268,3 +268,40 @@ add_task(async function keyboard_page_search_receives_a_hint() {
     EventUtils.synthesizeKey("KEY_Escape");
   });
 });
+
+add_task(async function button_roles_receive_action_hints() {
+  await BrowserTestUtils.withNewTab(EDITOR_PAGE, async browser => {
+    await SpecialPowers.spawn(browser, [], () => {
+      const doc = content.document;
+      const button = doc.createElement("div");
+      button.id = "role-button";
+      button.setAttribute("role", "button");
+      button.tabIndex = 0;
+      button.textContent = "Run action";
+      button.addEventListener("click", () => {
+        doc.body.dataset.activated = "true";
+      });
+      const disabled = button.cloneNode(true);
+      disabled.id = "disabled-role-button";
+      disabled.setAttribute("aria-disabled", "true");
+      doc.body.prepend(button, disabled);
+    });
+    const hints = await editorHints(browser);
+    const button = hints.find(hint => hint.id === "role-button");
+    Assert.ok(button.name.endsWith("Run action"), "Use the button's text");
+    Assert.ok(!hints.some(hint => hint.id === "disabled-role-button"));
+    EventUtils.sendString(button.label);
+    await SpecialPowers.spawn(browser, [], async () => {
+      await ContentTaskUtils.waitForCondition(
+        () => content.document.body.dataset.activated === "true"
+      );
+    });
+    Assert.equal(gModalNavigation.mode, "command");
+    const links = await editorHints(browser, browser, true);
+    Assert.deepEqual(
+      links.map(hint => hint.id),
+      ["link"]
+    );
+    EventUtils.synthesizeKey("KEY_Escape");
+  });
+});
