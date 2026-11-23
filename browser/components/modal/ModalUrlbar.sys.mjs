@@ -641,6 +641,7 @@ class ModalLocalProvider extends UrlbarProvider {
     ) {
       await state.ready;
       const engines = await lazy.SearchService.getVisibleEngines();
+      context.maxResults = Math.max(context.maxResults, engines.length);
       const aliasEntries = await lazy.UrlbarSearchUtils.tokenAliasEngines();
       const aliasesByName = new Map(
         aliasEntries.map(({ engine, tokenAliases }) => [
