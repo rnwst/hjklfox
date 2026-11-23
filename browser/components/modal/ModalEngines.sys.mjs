@@ -66,7 +66,7 @@ async function seedEngines() {
   if (Services.prefs.getBoolPref("browser.modal.engines.initialized", false)) {
     return;
   }
-  const engines = await SearchService.getEngines();
+  const engines = [...(await SearchService.getEngines())];
   for (const defaults of DEFAULT_ENGINES) {
     if (engines.some(engine => engine.aliases.includes(defaults.alias))) {
       continue;
