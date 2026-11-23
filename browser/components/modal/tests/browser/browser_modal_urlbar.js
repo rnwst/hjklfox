@@ -145,7 +145,24 @@ add_task(async function default_address_entry_submits_web_searches() {
 
 add_task(async function aliases_select_on_the_delimiter_without_query_text() {
   await BrowserTestUtils.withNewTab("about:blank", async () => {
-    for (const alias of ["@b", "@g", "@d", "@w", "@p", "@s", "@e"]) {
+    for (const alias of [
+      "@b",
+      "@g",
+      "@d",
+      "@w",
+      "@p",
+      "@s",
+      "@e",
+      "@m",
+      "@y",
+      "@aw",
+      "@gh",
+      "@so",
+      "@npm",
+      "@cr",
+      "@nix",
+      "@ho",
+    ]) {
       await openMode("f", "destinations");
       EventUtils.sendString(alias);
       await UrlbarTestUtils.promiseSearchComplete(window);
@@ -849,7 +866,20 @@ add_task(async function at_and_control_space_share_engine_choices() {
       value: "@",
     });
     const aliases = engineRows();
-    for (const alias of ["@g", "@s", "@e"]) {
+    for (const alias of [
+      "@g",
+      "@s",
+      "@e",
+      "@m",
+      "@y",
+      "@aw",
+      "@gh",
+      "@so",
+      "@npm",
+      "@cr",
+      "@nix",
+      "@ho",
+    ]) {
       const engine = await SearchService.getEngineByAlias(alias);
       Assert.ok(
         aliases.some(
@@ -976,10 +1006,9 @@ add_task(async function picker_can_select_an_engine_without_an_alias() {
       await UrlbarTestUtils.promiseSearchComplete(window);
       const index = engineRows().findIndex(row => row.engine === custom.name);
       Assert.greaterOrEqual(index, 0);
-      EventUtils.synthesizeMouseAtCenter(
-        UrlbarTestUtils.getRowAt(window, index),
-        {}
-      );
+      const row = UrlbarTestUtils.getRowAt(window, index);
+      row.scrollIntoView({ block: "nearest", behavior: "instant" });
+      EventUtils.synthesizeMouseAtCenter(row, {});
       await TestUtils.waitForCondition(
         () => gURLBar.searchMode?.engineName === custom.name
       );

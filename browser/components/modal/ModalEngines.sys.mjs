@@ -4,7 +4,7 @@
 
 import { SearchService } from "moz-src:///toolkit/components/search/SearchService.sys.mjs";
 
-export const DEFAULT_ENGINES = Object.freeze([
+const ORIGINAL_ENGINES = [
   {
     alias: "@g",
     name: "Google",
@@ -47,6 +47,76 @@ export const DEFAULT_ENGINES = Object.freeze([
     domain: "bing.com",
     url: "https://www.bing.com/search?q={searchTerms}",
   },
+];
+
+const DEVELOPER_ENGINES = [
+  {
+    alias: "@m",
+    name: "MDN",
+    domain: "developer.mozilla.org",
+    url: "https://developer.mozilla.org/en-US/search?q={searchTerms}",
+  },
+  {
+    alias: "@y",
+    name: "YouTube",
+    domain: "youtube.com",
+    url: "https://www.youtube.com/results?search_query={searchTerms}",
+  },
+  {
+    alias: "@aw",
+    name: "ArchWiki",
+    domain: "wiki.archlinux.org",
+    url: "https://wiki.archlinux.org/index.php?search={searchTerms}",
+  },
+  {
+    alias: "@gh",
+    name: "GitHub",
+    domain: "github.com",
+    url: "https://github.com/search?q={searchTerms}",
+  },
+];
+
+const PACKAGE_AND_HELP_ENGINES = [
+  {
+    alias: "@so",
+    name: "Stack Overflow",
+    domain: "stackoverflow.com",
+    url: "https://stackoverflow.com/search?q={searchTerms}",
+  },
+  {
+    alias: "@npm",
+    name: "npm",
+    domain: "npmjs.com",
+    url: "https://www.npmjs.com/search?q={searchTerms}",
+  },
+  {
+    alias: "@cr",
+    name: "crates.io",
+    domain: "crates.io",
+    url: "https://crates.io/search?q={searchTerms}",
+  },
+  {
+    alias: "@nix",
+    name: "Nix Packages",
+    domain: "search.nixos.org",
+    url: "https://search.nixos.org/packages?query={searchTerms}",
+  },
+];
+
+const HASKELL_ENGINES = [
+  {
+    alias: "@ho",
+    name: "Hoogle",
+    domain: "hoogle.haskell.org",
+    url: "https://hoogle.haskell.org/?hoogle={searchTerms}",
+  },
+];
+
+export const DEFAULT_ENGINES = Object.freeze([
+  ...ORIGINAL_ENGINES,
+  ...DEVELOPER_ENGINES,
+  ...PACKAGE_AND_HELP_ENGINES,
+  ...HASKELL_ENGINES,
 ]);
 
 let initialization;
@@ -63,11 +133,27 @@ export function ensureDefaultEngines() {
 
 async function seedEngines() {
   await SearchService.init();
-  if (Services.prefs.getBoolPref("browser.modal.engines.initialized", false)) {
+  await seedEngineBatch(ORIGINAL_ENGINES, "browser.modal.engines.initialized");
+  await seedEngineBatch(
+    DEVELOPER_ENGINES,
+    "browser.modal.engines.developerInitialized"
+  );
+  await seedEngineBatch(
+    PACKAGE_AND_HELP_ENGINES,
+    "browser.modal.engines.packageAndHelpInitialized"
+  );
+  await seedEngineBatch(
+    HASKELL_ENGINES,
+    "browser.modal.engines.haskellInitialized"
+  );
+}
+
+async function seedEngineBatch(defaultEngines, pref) {
+  if (Services.prefs.getBoolPref(pref, false)) {
     return;
   }
   const engines = [...(await SearchService.getEngines())];
-  for (const defaults of DEFAULT_ENGINES) {
+  for (const defaults of defaultEngines) {
     if (engines.some(engine => engine.aliases.includes(defaults.alias))) {
       continue;
     }
@@ -88,5 +174,5 @@ async function seedEngines() {
       engines.push(engine);
     }
   }
-  Services.prefs.setBoolPref("browser.modal.engines.initialized", true);
+  Services.prefs.setBoolPref(pref, true);
 }
