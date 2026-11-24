@@ -359,12 +359,14 @@ On first enabled startup, these default aliases are installed:
 | `@cr` | crates.io |
 | `@nix` | Nix Packages |
 | `@ho` | Hoogle |
+| `@gm` | Google Maps |
+| `@osm` | OpenStreetMap |
 
 Existing user aliases and hidden engines are respected. Defaults are not
 reapplied after user edits. MDN, YouTube, ArchWiki, GitHub, Stack Overflow, npm,
-crates.io, Nix Packages, and Hoogle are also seeded once for existing profiles on
-upgrade. Engine configuration remains in Firefox's Search settings; no parallel
-engine database is maintained.
+crates.io, Nix Packages, Hoogle, Google Maps, and OpenStreetMap are also seeded once
+for existing profiles on upgrade. Engine configuration remains in Firefox's
+Search settings; no parallel engine database is maintained.
 
 ## Page behavior and link hints
 

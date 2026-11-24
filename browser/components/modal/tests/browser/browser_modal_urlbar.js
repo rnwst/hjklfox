@@ -162,6 +162,8 @@ add_task(async function aliases_select_on_the_delimiter_without_query_text() {
       "@cr",
       "@nix",
       "@ho",
+      "@gm",
+      "@osm",
     ]) {
       await openMode("f", "destinations");
       EventUtils.sendString(alias);
@@ -586,6 +588,8 @@ add_task(async function aliases_and_engine_picker() {
     "@s": "startpage",
     "@e": "ecosia",
     "@b": "bing",
+    "@gm": "maps.google.com",
+    "@osm": "openstreetmap.org",
   };
   for (const [alias, domain] of Object.entries(aliases)) {
     const engine = await SearchService.getEngineByAlias(alias);
@@ -879,6 +883,8 @@ add_task(async function at_and_control_space_share_engine_choices() {
       "@cr",
       "@nix",
       "@ho",
+      "@gm",
+      "@osm",
     ]) {
       const engine = await SearchService.getEngineByAlias(alias);
       Assert.ok(

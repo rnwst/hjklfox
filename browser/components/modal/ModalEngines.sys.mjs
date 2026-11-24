@@ -112,11 +112,27 @@ const HASKELL_ENGINES = [
   },
 ];
 
+const MAP_ENGINES = [
+  {
+    alias: "@gm",
+    name: "Google Maps",
+    domain: "maps.google.com",
+    url: "https://maps.google.com/maps?q={searchTerms}",
+  },
+  {
+    alias: "@osm",
+    name: "OpenStreetMap",
+    domain: "openstreetmap.org",
+    url: "https://www.openstreetmap.org/search?query={searchTerms}",
+  },
+];
+
 export const DEFAULT_ENGINES = Object.freeze([
   ...ORIGINAL_ENGINES,
   ...DEVELOPER_ENGINES,
   ...PACKAGE_AND_HELP_ENGINES,
   ...HASKELL_ENGINES,
+  ...MAP_ENGINES,
 ]);
 
 let initialization;
@@ -146,6 +162,7 @@ async function seedEngines() {
     HASKELL_ENGINES,
     "browser.modal.engines.haskellInitialized"
   );
+  await seedEngineBatch(MAP_ENGINES, "browser.modal.engines.mapsInitialized");
 }
 
 async function seedEngineBatch(defaultEngines, pref) {
