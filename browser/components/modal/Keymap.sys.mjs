@@ -35,6 +35,7 @@ export const DEFAULT_BINDINGS = Object.freeze({
   "t u": "tab.reopen",
   "t q": "tab.close",
   "t v": "tab.select",
+  "t ;": "tab.deselect",
   "t k": "tab.previous",
   "t J": "tab.move-next",
   "t K": "tab.move-previous",

@@ -77,6 +77,7 @@ colors, the tint is omitted.
 | `tu` | Reopen the last closed tab (replaces Ctrl-Shift-T) |
 | `tq` | Close all selected tabs, or the current tab |
 | `tv` | Enter tab selection mode |
+| `t;` | Deselect all tabs except the current tab |
 | `tJ`, `tK` | Move the selected tabs forward or backward |
 | `th`, `tl` | Switch to the first or last tab |
 | `tH`, `tL` | Move the selected tabs to the beginning or end of the tab strip |
@@ -241,7 +242,8 @@ selection unfolds all groups it crosses. Split-view members count as individual
 tabs: selecting one does not select its partner unless both fall within the range.
 
 After Escape, use `tgn` to create a group, `tgm` to add the selection to an
-existing group, or `tq` to close all selected tabs. Reentering `tv` resets the
+existing group, or `tq` to close all selected tabs. Use `t;` to deselect all tabs
+except the displayed tab while staying in command mode. Reentering `tv` resets the
 selection to the displayed tab. Ordinary tab switches retain Firefox's native
 selection-clearing behaviour.
 

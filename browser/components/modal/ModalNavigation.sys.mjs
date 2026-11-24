@@ -900,6 +900,9 @@ export class ModalNavigation {
       case "tab.select":
         this.tabs.startSelection();
         break;
+      case "tab.deselect":
+        this.tabs.replaceSelection([browser.selectedTab]);
+        break;
       case "selection.next":
       case "selection.previous":
       case "selection.first":

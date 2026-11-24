@@ -64,6 +64,7 @@ modal-shortcut-tab-new-before = Open a new tab before the current tab
 modal-shortcut-tab-reopen = Reopen the last closed tab
 modal-shortcut-tab-close = Close the selected tabs
 modal-shortcut-tab-select = Enter tab selection mode; Escape keeps the selection
+modal-shortcut-tab-deselect = Deselect all tabs except the current tab
 modal-shortcut-selection-next = Move the tab-selection cursor forward
 modal-shortcut-selection-previous = Move the tab-selection cursor backward
 modal-shortcut-selection-first = Select the range from the anchor to the first tab

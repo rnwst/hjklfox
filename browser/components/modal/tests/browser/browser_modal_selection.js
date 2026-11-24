@@ -147,6 +147,62 @@ add_task(async function selection_keeps_displayed_tab_and_unfolds_groups() {
   }
 });
 
+add_task(async function deselect_keeps_only_the_current_tab() {
+  const tabs = [];
+  try {
+    for (let i = 0; i < 3; i++) {
+      tabs.push(
+        await BrowserTestUtils.openNewForegroundTab(gBrowser, "about:blank")
+      );
+    }
+    const [a, b, c] = tabs;
+    await activate(b);
+    await keys("tvj");
+    EventUtils.synthesizeKey("KEY_Escape");
+    Assert.deepEqual(gBrowser.selectedTabs, [b, c]);
+    await keys("t;");
+    Assert.deepEqual(gBrowser.selectedTabs, [b]);
+    Assert.equal(gBrowser.selectedTab, b, "The displayed tab stays unchanged");
+    Assert.equal(gModalNavigation.mode, "command");
+    Assert.ok(!c.multiselected, "The other tab loses its selection marker");
+    Assert.ok(!document.querySelector("[modal-selection-cursor]"));
+    await keys("t;");
+    Assert.deepEqual(
+      gBrowser.selectedTabs,
+      [b],
+      "Deselecting again keeps only the current tab"
+    );
+
+    const split = gBrowser.addTabSplitView([b, c], { insertBefore: b });
+    const group = gBrowser.addTabGroup([a, split], { insertBefore: a });
+    await activate(b);
+    await keys("tgs");
+    Assert.deepEqual(gBrowser.selectedTabs, [a, b, c]);
+    Assert.ok(split.multiselected);
+    group.collapsed = true;
+    await keys("t;");
+    Assert.deepEqual(
+      gBrowser.selectedTabs,
+      [b],
+      "Deselecting a group keeps only the current split member"
+    );
+    Assert.equal(gBrowser.selectedTab, b);
+    Assert.equal(gModalNavigation.mode, "command");
+    Assert.ok(!a.multiselected && !c.multiselected);
+    Assert.ok(!split.multiselected, "The split loses its selection marker");
+    Assert.ok(!split.hasAttribute("aria-selected"));
+    Assert.equal(b.splitview, split, "The split stays intact");
+    Assert.deepEqual(group.tabs, [a, b, c], "Group membership stays intact");
+    Assert.ok(group.collapsed, "The group stays folded");
+  } finally {
+    gBrowser.clearMultiSelectedTabs();
+    gModalNavigation.enterCommand();
+    for (const tab of tabs) {
+      await BrowserTestUtils.removeTab(tab);
+    }
+  }
+});
+
 add_task(async function selection_mode_survives_a_pending_navigation() {
   const base =
     "https://example.com/browser/browser/components/modal/tests/browser/";
