@@ -731,9 +731,15 @@ var ctrlTab = {
         this._sortRecentlyUsedTabs();
         break;
       case "keydown":
+        if (window.gModalNavigation?.shortcuts.blocked) {
+          break;
+        }
         this.onKeyDown(event);
         break;
       case "keypress":
+        if (window.gModalNavigation?.shortcuts.blocked) {
+          break;
+        }
         this.onKeyPress(event);
         break;
       case "keyup":

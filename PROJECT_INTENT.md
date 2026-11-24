@@ -24,12 +24,16 @@ handoff is not a roadmap.
 ## Behavioral principles
 
 - Distinguish **command**, **insert**, **address-bar**, **page-search**, and
-  **tab-selection** modes. Pages receive keyboard events in insert mode,
+  **tab-selection**, and **link-hint** modes. Pages receive keyboard events in insert mode,
   excluding Escape and the command-only Ctrl-w prefix, and arrow-key
   events in command mode (including `hjkl` translated to Left/Down/Up/Right). Keep
-  native browser shortcuts and Tab/Enter defaults without exposing their keys to
+  native browser shortcuts only in command mode with no pending key prefix
+  (a numeric count alone does not block shortcuts). Preserve Tab/Enter defaults without exposing their keys to
   page scripts. Explicit editing focus enters insert mode; unsolicited page
   autofocus must not. Mode-changing keys must not leak their repeats or releases.
+  Native menus and dialogs return to command mode and cancel hints and prefixes;
+  closing them does not restore the old mode. Editing autocomplete popups retain
+  their current mode. Preserve native editing defaults in every mode.
 - Tab selection uses native Firefox multiselection, a fixed anchor, and a separate
   cursor, without changing the displayed tab. Reversing the cursor shrinks the
   range. Split-view members are selected individually; grouping only one member

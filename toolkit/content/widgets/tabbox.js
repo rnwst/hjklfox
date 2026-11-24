@@ -108,6 +108,12 @@
     }
 
     handleEvent(event) {
+      if (
+        this.id === "tabbrowser-tabbox" &&
+        window.gModalNavigation?.shortcuts.blocked
+      ) {
+        return;
+      }
       if (!event.isTrusted) {
         // Don't let untrusted events mess with tabs.
         return;

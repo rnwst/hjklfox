@@ -12,6 +12,7 @@ MOZ_SRC_FILES += [
     "ModalNavigation.sys.mjs",
     "ModalNewTabChild.sys.mjs",
     "ModalParent.sys.mjs",
+    "ModalShortcuts.sys.mjs",
     "ModalTabs.sys.mjs",
     "ModalUrlbar.sys.mjs",
     "SimplifiedChrome.sys.mjs",

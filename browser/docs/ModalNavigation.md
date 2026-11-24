@@ -9,7 +9,7 @@ fork choices. There is no command prompt.
 ## Modes and focus
 
 Each browser window owns one active interaction mode: command, insert, address
-bar, page search, or tab selection. Switching between existing tabs returns to command mode;
+bar, page search, tab selection, or link hints. Switching between existing tabs returns to command mode;
 neither page editing nor address/find-field focus is restored from a tab. Opening a new tab
 with `tn` focuses its address bar for a new navigation, but revisiting that
 tab does not restore address mode. Navigating to a new document also returns to
@@ -24,8 +24,9 @@ The `h`, `j`, `k`, and `l` bindings send Left, Down, Up, and Right arrow keys
 respectively. Pages can handle or cancel these events; otherwise native arrow-key
 behavior applies, including scrolling.
 Other keyboard events, including modifier keys and function keys, are withheld
-outside insert mode. Firefox's own shortcuts remain
-available. Tab can move focus and Enter can activate a link or button without
+outside insert mode. Firefox's own browser shortcuts are available only in command
+mode with no pending key prefix; numeric counts alone do not disable them.
+Tab can move focus and Enter can activate a link or button without
 exposing the keys to page scripts; scripts can still respond to the resulting
 focus changes and clicks. In insert mode, page input works normally, except that
 Escape and the command-only Ctrl-w prefix are withheld from the page. A blocked key that starts outside insert mode cannot
@@ -107,8 +108,11 @@ colors, the tint is omitted.
 Numeric prefixes apply to arrow presses, scrolling, tab switching, and tab movement, for example
 `5j`, `3tj`, and `3tJ`. Counts are capped at 999. Keys use logical characters,
 rather than fixed physical keyboard positions. In command mode, matching modal bindings override
-Firefox's existing bindings, such as `Ctrl-u` for View Source. Insert mode keeps
-Firefox's native shortcuts.
+Firefox's existing bindings, such as `Ctrl-u` for View Source. Other modes disable
+native browser shortcuts without cancelling page input or native text editing.
+Native menus and dialogs cancel hints and pending sequences and enter command
+mode; closing them keeps command mode active. Autocomplete and address-bar
+suggestions retain their editing mode and existing controls.
 
 Starting a sequence such as `Space`, `g`, or `t` opens a small completion popup at the
 top right, below the navigation toolbar. It shows the remaining keys and their
@@ -260,7 +264,7 @@ Escape while editing cancels the search, hides the bar, and clears highlighting,
 including in other frames
 and PDFs. Highlighting is visible only while the search bar is visible. Escape
 in command mode leaves the bar alone; press `/` then Escape to close it.
-Native tab-switching shortcuts can still leave search mode. To open a tab with
+Leave search mode with Escape before using native tab-switching shortcuts. To open a tab with
 `tn`, first return to command mode with Escape.
 In insert mode, `/` is passed to the page normally and does not open Firefox's
 find bar.

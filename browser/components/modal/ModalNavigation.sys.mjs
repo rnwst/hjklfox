@@ -12,6 +12,7 @@ import { configureSimplifiedChrome } from "moz-src:///browser/components/modal/S
 import { ModalKeyPopup } from "moz-src:///browser/components/modal/ModalKeyPopup.sys.mjs";
 import { ModalFind } from "moz-src:///browser/components/modal/ModalFind.sys.mjs";
 import { ModalTabs } from "moz-src:///browser/components/modal/ModalTabs.sys.mjs";
+import { ModalShortcuts } from "moz-src:///browser/components/modal/ModalShortcuts.sys.mjs";
 
 const PREF = "browser.modal.enabled";
 const KEYMAP_PREF = "browser.modal.keybindings";
@@ -40,6 +41,8 @@ export class ModalNavigation {
   constructor(win) {
     configureSimplifiedChrome(win);
     this.window = win;
+    this.shortcuts = new ModalShortcuts(win);
+    this.nativeDialogs = 0;
     this.find = new ModalFind(this);
     this.tabs = new ModalTabs(win);
     this.keyPopup = new ModalKeyPopup(win);
@@ -63,6 +66,11 @@ export class ModalNavigation {
       "blur",
       "unload",
       "popupshowing",
+      "popuphidden",
+      "DOMWillOpenModalDialog",
+      "DOMModalDialogClosed",
+      "dialogopen",
+      "dialogclose",
       "pointerdown",
       "pointerup",
       "MozDOMFullscreen:Entered",
@@ -233,7 +241,9 @@ export class ModalNavigation {
   }
 
   setMode(mode) {
-    if (this.enabled && this.inDOMFullscreen) {
+    if (this.nativeDialogs || this.hasOpenNativePopup()) {
+      mode = "command";
+    } else if (this.enabled && this.inDOMFullscreen) {
       mode = "insert";
     } else if (mode === "insert" && this.isAddressBarFocus()) {
       mode = "address";
@@ -249,9 +259,10 @@ export class ModalNavigation {
     if (mode !== "insert") {
       this.splitPickerBrowser = null;
     }
-    this.cancelHints();
+    this.cancelHints(false);
     this.resetKeys();
     this.mode = mode;
+    this.updateShortcuts();
     this.find.updateOptions();
     for (const actor of this.actors()) {
       send(actor, "Modal:Mode", { insert: mode === "insert" });
@@ -266,6 +277,9 @@ export class ModalNavigation {
   }
 
   updateIndicator() {
+    if (this.mode === "hint" && !this.hints) {
+      return;
+    }
     if (this.mode === "select") {
       this.window.document.l10n.setAttributes(
         this.indicator,
@@ -386,6 +400,9 @@ export class ModalNavigation {
   }
 
   handleChromeFocus(event, active) {
+    if (this.nativeDialogs || this.hasOpenNativePopup()) {
+      return;
+    }
     if (event.target.ownerDocument !== this.window.document) {
       return;
     }
@@ -452,6 +469,52 @@ export class ModalNavigation {
     ].some(popup => popup.state === "open" || popup.state === "showing");
   }
 
+  isNativePopup(popup) {
+    return (
+      popup.ownerDocument === this.window.document &&
+      popup.matches?.('panel:not([role="tooltip"]), menupopup') &&
+      !popup.matches('[type^="autocomplete"], #invalid-form-popup')
+    );
+  }
+
+  hasOpenNativePopup() {
+    return [...this.window.document.querySelectorAll("panel, menupopup")].some(
+      popup =>
+        this.isNativePopup(popup) &&
+        (popup.state === "open" || popup.state === "showing")
+    );
+  }
+
+  updateShortcuts() {
+    this.shortcuts.setBlocked(
+      this.enabled && (this.mode !== "command" || !!this.keymap?.prefix)
+    );
+  }
+
+  handleNativeUIEvent(event) {
+    switch (event.type) {
+      case "popupshowing":
+      case "popuphidden":
+        if (!this.isNativePopup(event.target)) {
+          return true;
+        }
+        break;
+      case "DOMWillOpenModalDialog":
+      case "dialogopen":
+        this.nativeDialogs++;
+        break;
+      case "DOMModalDialogClosed":
+      case "dialogclose":
+        this.nativeDialogs = Math.max(0, this.nativeDialogs - 1);
+        break;
+      default:
+        return false;
+    }
+    this.chromeEditing = false;
+    this.setMode("command");
+    return true;
+  }
+
   handleEvent(event) {
     const win = this.window;
     if (event.type === "unload") {
@@ -467,10 +530,7 @@ export class ModalNavigation {
       this.updateFullscreen();
       return;
     }
-    if (event.type === "popupshowing") {
-      if (event.target.matches('panel:not([role="tooltip"]), menupopup')) {
-        this.resetKeys();
-      }
+    if (this.handleNativeUIEvent(event)) {
       return;
     }
     if (event.type === "pointerdown") {
@@ -530,7 +590,7 @@ export class ModalNavigation {
       }
       return;
     }
-    if (this.hasOpenPopup()) {
+    if (this.nativeDialogs || this.hasOpenPopup()) {
       this.finishKey(event);
       if (event.type === "keyup") {
         this.pageBlockedKeys.delete(event.code || event.key);
@@ -556,7 +616,7 @@ export class ModalNavigation {
     }
     this.tabFocusPending =
       event.key === "Tab" && !event.ctrlKey && !event.altKey && !event.metaKey;
-    if (keyToken(event) === "C-w" && this.mode !== "command") {
+    if (keyToken(event) === "C-w" && !["command", "hint"].includes(this.mode)) {
       this.consume(event);
       return;
     }
@@ -582,7 +642,7 @@ export class ModalNavigation {
       win.gBrowser.selectedBrowser.focus();
       return;
     }
-    if (this.tabFocusPending && !inContent && this.isChromeEditor(active)) {
+    if (event.key === "Tab" && !inContent && this.isChromeEditor(active)) {
       this.consume(event);
       this.tabFocusPending = false;
       return;
@@ -612,6 +672,9 @@ export class ModalNavigation {
   handleCommandKey(event) {
     const token = keyToken(event);
     if (token === null) {
+      if (this.keymap.prefix) {
+        this.consume(event);
+      }
       this.resetKeys();
       return;
     }
@@ -623,13 +686,23 @@ export class ModalNavigation {
     }
     const keymap = this.mode === "select" ? this.selectionKeymap : this.keymap;
     if (!printable && !keymap.accepts(token)) {
+      if (keymap.prefix) {
+        this.consume(event);
+      }
       this.resetKeys();
       return;
     }
     this.consume(event);
     const action = keymap.feed(token);
+    this.updateShortcuts();
     if (this.hints && !printable && keymap.prefix) {
+      const { prefix, count } = keymap;
       this.cancelHints();
+      // Leaving hint mode resets the parser; retain the newly started sequence.
+      keymap.prefix = prefix;
+      keymap.count = count;
+      this.updateShortcuts();
+      this.keyPopup.update(keymap).catch(console.error);
     }
     this.keyPopup.update(keymap).catch(console.error);
     if (
@@ -746,6 +819,7 @@ export class ModalNavigation {
     this.keymap.reset();
     this.selectionKeymap.reset();
     this.keyPopup.hide();
+    this.updateShortcuts();
   }
 
   escape(event, active, inContent) {
@@ -918,7 +992,7 @@ export class ModalNavigation {
   }
 
   async startHints(newTab = false) {
-    this.cancelHints();
+    this.setMode("hint");
     const generation = this.generation;
     this.hints = {
       prefix: "",
@@ -1019,13 +1093,16 @@ export class ModalNavigation {
     }
   }
 
-  cancelHints() {
+  cancelHints(leaveMode = true) {
     const hadHints = !!this.hints;
     for (const actor of this.hints?.actors || []) {
       send(actor, "Modal:Clear");
     }
     this.hints = null;
     this.generation++;
+    if (leaveMode && this.mode === "hint") {
+      this.setMode("command");
+    }
     if (hadHints) {
       this.updateIndicator();
     }
@@ -1056,6 +1133,7 @@ export class ModalNavigation {
     this.keyPopup.destroy();
     this.urlbar?.destroy();
     this.cancelHints();
+    this.shortcuts.destroy();
     Services.prefs.removeObserver(PREF, this.observe);
     Services.prefs.removeObserver(KEYMAP_PREF, this.observe);
     for (const type of [
@@ -1066,6 +1144,11 @@ export class ModalNavigation {
       "blur",
       "unload",
       "popupshowing",
+      "popuphidden",
+      "DOMWillOpenModalDialog",
+      "DOMModalDialogClosed",
+      "dialogopen",
+      "dialogclose",
       "pointerdown",
       "pointerup",
       "MozDOMFullscreen:Entered",

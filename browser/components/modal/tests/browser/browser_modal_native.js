@@ -277,6 +277,20 @@ add_task(
         await TestUtils.waitForCondition(
           () => gBrowser.selectedTab === other && gURLBar.focused
         );
+        await nativeKey("Escape", "Escape");
+        await nativeKey("space", " ");
+        await nativeKey("e", "e");
+        await TestUtils.waitForCondition(
+          () => gModalNavigation.mode === "address"
+        );
+        await nativeKey("ctrl+shift+Tab", "Control");
+        Assert.equal(
+          gBrowser.selectedTab,
+          other,
+          "Address mode blocks native tab switching"
+        );
+        Assert.equal(gModalNavigation.mode, "address");
+        await nativeKey("Escape", "Escape");
         const switched = BrowserTestUtils.waitForEvent(
           gBrowser,
           "TabSwitchDone"
@@ -658,6 +672,24 @@ add_task({ skip_if: () => !xdotool }, async function native_keyboard_routing() {
     };
     window.addEventListener("command", onCommand, true);
     try {
+      await nativeKey("i", "i");
+      for (const chord of ["ctrl+d", "ctrl+u", "ctrl+f", "ctrl+p"]) {
+        await nativeKey(chord, "Control");
+      }
+      Assert.deepEqual(
+        unexpected,
+        [],
+        "Native shortcuts do not run in insert mode"
+      );
+      Assert.equal(gModalNavigation.mode, "insert");
+      const selectedTab = gBrowser.selectedTab;
+      await nativeKey("ctrl+Tab", "Control");
+      Assert.equal(
+        gBrowser.selectedTab,
+        selectedTab,
+        "Insert mode blocks native tab cycling"
+      );
+      await nativeKey("Escape", "Escape");
       await nativeKey("ctrl+l", "Control");
       Assert.equal(document.activeElement, browser, "Native Ctrl-l is retired");
       await nativeKey("alt+d", "Alt");
@@ -683,6 +715,13 @@ add_task({ skip_if: () => !xdotool }, async function native_keyboard_routing() {
         () => gModalNavigation.hints?.targets.length === 5
       );
       const actionLabel = gModalNavigation.hints.targets[0].label;
+      Assert.equal(
+        gModalNavigation.mode,
+        "hint",
+        "Hints have an explicit mode"
+      );
+      await nativeKey("ctrl+p", "Control");
+      Assert.deepEqual(unexpected, [], "Hints suppress native Print");
       await nativeKey(actionLabel, actionLabel);
       await SpecialPowers.spawn(browser, [], async () => {
         await ContentTaskUtils.waitForCondition(

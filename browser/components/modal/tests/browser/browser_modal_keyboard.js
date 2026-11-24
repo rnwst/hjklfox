@@ -20,6 +20,119 @@ async function recordedKeys(context, completedKey = null) {
   });
 }
 
+add_task(async function native_shortcuts_follow_mode_and_prefix() {
+  await BrowserTestUtils.withNewTab(KEYBOARD_PAGE, async browser => {
+    const commands = [];
+    const onCommand = event => {
+      commands.push(event.target.id);
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+    window.addEventListener("command", onCommand, true);
+    try {
+      browser.focus();
+      for (const mode of ["insert", "address", "search", "select", "hint"]) {
+        gModalNavigation.setMode(mode);
+        EventUtils.synthesizeKey("p", { accelKey: true });
+        await SpecialPowers.spawn(browser, [], () => {});
+        Assert.deepEqual(commands, [], `${mode} cannot invoke Print`);
+      }
+      gModalNavigation.setMode("insert");
+      EventUtils.synthesizeKey("d", { ctrlKey: true });
+      const events = await recordedKeys(browser, "d");
+      Assert.ok(
+        events.some(event => event.type === "keydown" && event.key === "d"),
+        "Insert mode delivers shortcut input to the page"
+      );
+      Assert.deepEqual(commands, [], "Ctrl-d does not bookmark");
+
+      gModalNavigation.setMode("command");
+      await gModalNavigation.startHints();
+      Assert.equal(gModalNavigation.mode, "hint");
+      EventUtils.synthesizeKey("w", { ctrlKey: true });
+      Assert.equal(
+        gModalNavigation.mode,
+        "command",
+        "A modal prefix leaves hints"
+      );
+      Assert.equal(
+        gModalNavigation.keymap.prefix,
+        "C-w",
+        "The new prefix survives"
+      );
+      Assert.ok(
+        gModalNavigation.shortcuts.blocked,
+        "The prefix still blocks shortcuts"
+      );
+
+      gModalNavigation.setMode("command");
+      EventUtils.synthesizeKey("g");
+      Assert.ok(
+        gModalNavigation.shortcuts.blocked,
+        "A prefix blocks shortcuts"
+      );
+      EventUtils.synthesizeKey("p", { accelKey: true });
+      await SpecialPowers.spawn(browser, [], () => {});
+      Assert.deepEqual(
+        commands,
+        [],
+        "An unmatched shortcut cancels only the prefix"
+      );
+      EventUtils.synthesizeKey("5");
+      Assert.ok(
+        !gModalNavigation.shortcuts.blocked,
+        "A count permits shortcuts"
+      );
+      EventUtils.synthesizeKey("p", { accelKey: true });
+      await TestUtils.waitForCondition(() => commands.length);
+      commands.length = 0;
+
+      gModalNavigation.setMode("insert");
+      const popup = document.getElementById("contentAreaContextMenu");
+      const shown = BrowserTestUtils.waitForEvent(popup, "popupshown");
+      await BrowserTestUtils.synthesizeMouseAtCenter(
+        "#button",
+        { type: "contextmenu", button: 2 },
+        browser
+      );
+      await shown;
+      Assert.equal(
+        gModalNavigation.mode,
+        "command",
+        "Native menu enters command mode"
+      );
+      Assert.ok(
+        !gModalNavigation.shortcuts.blocked,
+        "Native menu enables shortcuts"
+      );
+      const hidden = BrowserTestUtils.waitForEvent(popup, "popuphidden");
+      popup.hidePopup();
+      await hidden;
+      Assert.equal(
+        gModalNavigation.mode,
+        "command",
+        "Closing menu keeps command mode"
+      );
+
+      gModalNavigation.setMode("insert");
+      await SpecialPowers.pushPrefEnv({
+        set: [["browser.modal.enabled", false]],
+      });
+      try {
+        Assert.ok(
+          !gModalNavigation.shortcuts.blocked,
+          "Disabling modal restores keysets"
+        );
+      } finally {
+        await SpecialPowers.popPrefEnv();
+      }
+    } finally {
+      window.removeEventListener("command", onCommand, true);
+      gModalNavigation.setMode("command");
+    }
+  });
+});
+
 add_task(async function command_mode_hides_non_arrow_keyboard_events() {
   await BrowserTestUtils.withNewTab(KEYBOARD_PAGE, async browser => {
     browser.focus();
