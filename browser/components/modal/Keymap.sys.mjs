@@ -30,6 +30,8 @@ export const DEFAULT_BINDINGS = Object.freeze({
   "Space b": "urlbar.tabs",
   "Space s": "urlbar.search",
   "t j": "tab.next",
+  "t o": "tab.history-back",
+  "t i": "tab.history-forward",
   "t n": "tab.new",
   "t N": "tab.new-before",
   "t u": "tab.reopen",

@@ -45,4 +45,6 @@ support-files = ["!/browser/components/urlbar/tests/browser/searchSuggestionEngi
 
 ["browser_modal_split.js"]
 
+["browser_modal_tab_history.js"]
+
 ["browser_modal_urlbar.js"]

@@ -80,6 +80,7 @@ export class ModalNavigation {
       target.addEventListener(type, this, true);
     }
     win.gBrowser.tabContainer.addEventListener("TabSelect", this);
+    win.gBrowser.tabContainer.addEventListener("TabClose", this);
     win.gBrowser.addProgressListener(this);
     win.document.l10n.addResourceIds(["browser/modal.ftl"]);
     this.indicator = win.document.createElementNS(
@@ -197,6 +198,12 @@ export class ModalNavigation {
   }
 
   configure() {
+    if (this.historyEnabled !== this.enabled) {
+      this.historyEnabled = this.enabled;
+      this.tabs.resetHistory(
+        this.enabled ? this.window.gBrowser.selectedTab : null
+      );
+    }
     this.selectionKeymap = new Keymap({}, SELECT_BINDINGS);
     this.keymap = Keymap.fromJSON(
       Services.prefs.getStringPref(KEYMAP_PREF, "{}")
@@ -550,7 +557,12 @@ export class ModalNavigation {
       return;
     }
     if (event.type === "TabSelect") {
+      this.tabs.recordSelection(event.target);
       this.handleTabSelect();
+      return;
+    }
+    if (event.type === "TabClose") {
+      this.tabs.forgetTab(event.target);
       return;
     }
     if (event.type === "blur") {
@@ -903,6 +915,13 @@ export class ModalNavigation {
       case "tab.deselect":
         this.tabs.replaceSelection([browser.selectedTab]);
         break;
+      case "tab.history-back":
+      case "tab.history-forward":
+        this.tabs.traverseHistory(
+          command === "tab.history-back" ? -1 : 1,
+          count
+        );
+        break;
       case "selection.next":
       case "selection.previous":
       case "selection.first":
@@ -1131,6 +1150,7 @@ export class ModalNavigation {
   }
 
   destroy() {
+    this.tabs.resetHistory();
     this.find.destroy();
     this.restoreChromeTabOrder();
     this.keyPopup.destroy();
@@ -1163,6 +1183,7 @@ export class ModalNavigation {
       target.removeEventListener(type, this, true);
     }
     this.window.gBrowser.tabContainer.removeEventListener("TabSelect", this);
+    this.window.gBrowser.tabContainer.removeEventListener("TabClose", this);
     this.window.gBrowser.removeProgressListener(this);
   }
 }

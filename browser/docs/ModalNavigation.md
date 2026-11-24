@@ -72,6 +72,7 @@ colors, the tint is omitted.
 | `gg`, `ge` | Scroll to the beginning or end |
 | `gh`, `gl` | Scroll to the left or right edge |
 | `tj`, `tk` | Next or previous tab |
+| `to`, `ti` | Backward or forward in tab history |
 | `tn` | Open a new tab |
 | `tN` | Open a new tab before the current tab |
 | `tu` | Reopen the last closed tab (replaces Ctrl-Shift-T) |
@@ -140,6 +141,25 @@ Control, such as `C-d` or `Space f`.
 in command mode. Command identifiers and defaults are in `Keymap.sys.mjs`;
 unknown command identifiers are ignored. Escape remains the fixed cancellation
 key. Avoid assigning a complete command to a prefix used by longer sequences.
+
+## Tab history
+
+`to` and `ti` retrace tab visits in the current window. Every actual tab switch
+is recorded, including mouse clicks, native shortcuts, and tab-picker selections.
+Opening a background tab does not record a visit until it is selected. Repeated
+visits are retained: after visiting A, B, A, C, successive `to` commands return
+to A, B, then A.
+
+Counts such as `3to` traverse several visits and activate only the final tab.
+Traversal stops at either end without wrapping. Traversing history does not add
+visits; switching tabs normally after going backward discards the forward branch.
+Closed, detached, and genuinely hidden tabs are skipped. Folded-group members
+remain eligible, and visiting them preserves the group's folded state. Tab
+identity, rather than URL or tab-strip position, identifies each destination.
+
+History starts with the window's selected tab and is kept only in memory for
+that window. Disabling `browser.modal.enabled` clears it; re-enabling starts
+fresh with the currently selected tab.
 
 ## Tab groups
 

@@ -86,6 +86,8 @@ add_task(async function prefixes_show_available_keys_without_taking_focus() {
       [...panel.querySelectorAll("[data-keys]")].map(row => row.dataset.keys),
       [
         "j",
+        "o",
+        "i",
         "n",
         "N",
         "u",

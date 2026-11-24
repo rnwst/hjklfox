@@ -27,6 +27,31 @@ add_task(function page_search_navigation_uses_n_and_N() {
   Assert.equal(keys.feed("p"), null);
 });
 
+add_task(function tab_history_bindings_and_counts() {
+  const keys = new Keymap();
+  keys.feed("3");
+  keys.feed("t");
+  Assert.deepEqual(keys.feed("o"), { command: "tab.history-back", count: 3 });
+  keys.feed("t");
+  Assert.deepEqual(keys.feed("i"), {
+    command: "tab.history-forward",
+    count: 1,
+  });
+  Assert.equal(keys.feed("i").command, "mode.insert");
+  Assert.equal(keys.feed("C-o").command, "history.back");
+  Assert.equal(keys.feed("C-i").command, "history.forward");
+
+  const custom = new Keymap({ "t o": null, "g o": "tab.history-back" });
+  custom.feed("t");
+  Assert.ok(!custom.completions().some(item => item.keys === "o"));
+  Assert.ok(
+    custom.completions().some(item => item.command === "tab.history-forward")
+  );
+  custom.reset();
+  custom.feed("g");
+  Assert.equal(custom.feed("o").command, "tab.history-back");
+});
+
 add_task(function tab_prefixes_have_no_terminal_conflicts() {
   const keys = new Keymap({ "t t": "group.pick" });
   const bindings = Object.keys(keys.bindings);

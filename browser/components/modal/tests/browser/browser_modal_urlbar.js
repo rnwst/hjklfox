@@ -1037,7 +1037,8 @@ add_task(async function fuzzy_tab_switching() {
     await TestUtils.waitForCondition(
       () => target.label === "Quasar Research Notebook"
     );
-    await BrowserTestUtils.withNewTab("about:blank", async () => {
+    await BrowserTestUtils.withNewTab("about:blank", async browser => {
+      const source = gBrowser.getTabForBrowser(browser);
       await openMode("b", "tabs");
       await UrlbarTestUtils.promiseAutocompleteResultPopup({
         window,
@@ -1048,6 +1049,12 @@ add_task(async function fuzzy_tab_switching() {
         target.linkedBrowser.currentURI.spec
       );
       EventUtils.synthesizeKey("KEY_Enter");
+      await TestUtils.waitForCondition(() => gBrowser.selectedTab === target);
+      EventUtils.synthesizeKey("t");
+      EventUtils.synthesizeKey("o");
+      await TestUtils.waitForCondition(() => gBrowser.selectedTab === source);
+      EventUtils.synthesizeKey("t");
+      EventUtils.synthesizeKey("i");
       await TestUtils.waitForCondition(() => gBrowser.selectedTab === target);
     });
   } finally {

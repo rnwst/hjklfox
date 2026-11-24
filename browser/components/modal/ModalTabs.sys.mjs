@@ -18,6 +18,78 @@ function groupRepresentative(group, tabs = group.tabs) {
 export class ModalTabs {
   constructor(win) {
     this.window = win;
+    this.resetHistory();
+  }
+
+  resetHistory(tab = null) {
+    this.history = tab ? [tab] : [];
+    this.historyIndex = this.history.length - 1;
+    this.historyTab = tab;
+    this.historyTarget = null;
+  }
+
+  recordSelection(tab) {
+    if (tab === this.historyTarget || tab === this.historyTab) {
+      return;
+    }
+    this.historyTab = tab;
+    this.history.length = this.historyIndex + 1;
+    if (this.history.at(-1) !== tab) {
+      this.history.push(tab);
+    }
+    this.historyIndex = this.history.length - 1;
+  }
+
+  forgetTab(tab) {
+    let removedBeforeCursor = 0;
+    this.history = this.history.filter((entry, index) => {
+      if (entry !== tab) {
+        return true;
+      }
+      if (index <= this.historyIndex) {
+        removedBeforeCursor++;
+      }
+      return false;
+    });
+    this.historyIndex -= removedBeforeCursor;
+    if (this.historyTab === tab) {
+      this.historyTab = null;
+    }
+  }
+
+  traverseHistory(direction, count) {
+    const eligible = new Set(this.window.gBrowser.nonHiddenTabs);
+    let destination = this.historyIndex;
+    let tab = this.window.gBrowser.selectedTab;
+    for (
+      let index = destination + direction;
+      index >= 0 && index < this.history.length && count;
+      index += direction
+    ) {
+      const candidate = this.history[index];
+      if (!eligible.has(candidate) || candidate === tab) {
+        continue;
+      }
+      destination = index;
+      tab = candidate;
+      count--;
+    }
+    if (destination === this.historyIndex) {
+      return;
+    }
+    const previousIndex = this.historyIndex;
+    const previousTab = this.historyTab;
+    this.historyIndex = destination;
+    this.historyTab = tab;
+    this.historyTarget = tab;
+    try {
+      if (!this.activate(tab)) {
+        this.historyIndex = previousIndex;
+        this.historyTab = previousTab;
+      }
+    } finally {
+      this.historyTarget = null;
+    }
   }
 
   startSelection() {
