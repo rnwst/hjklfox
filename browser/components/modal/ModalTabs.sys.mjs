@@ -187,59 +187,136 @@ export class ModalTabs {
   }
 
   move(direction, count, withinGroup = false) {
+    this.moveSelection(direction, count, withinGroup);
+  }
+
+  moveSelection(direction, count, withinGroup, edge = false) {
     const browser = this.window.gBrowser;
-    const current = browser.selectedTab;
-    const tabs = this.navigationStops(withinGroup);
-    const index = tabs.indexOf(current);
-    if (index < 0) {
-      return;
+    const selected = [...browser.selectedTabs];
+    const active = browser.selectedTab;
+    const partitions = new Map();
+    for (const tab of selected) {
+      const key = withinGroup ? tab.group : tab.pinned;
+      if (withinGroup && !key) {
+        continue;
+      }
+      if (!partitions.has(key)) {
+        partitions.set(key, []);
+      }
+      partitions.get(key).push(tab);
     }
-    const offset = index + direction * count;
-    const destination = withinGroup
-      ? ((offset % tabs.length) + tabs.length) % tabs.length
-      : Math.max(0, Math.min(tabs.length - 1, offset));
-    let target = tabs[destination];
-    if (target === current) {
-      if (withinGroup || !current.group) {
+    for (const [key, tabs] of partitions) {
+      this.moveBlock(tabs, direction, count, withinGroup, edge, key);
+    }
+    if (browser.selectedTab !== active) {
+      browser.selectedTab = active;
+    }
+    this.replaceSelection(selected);
+  }
+
+  moveBlock(tabs, direction, count, withinGroup, edge, partition) {
+    const browser = this.window.gBrowser;
+    const selected = new Set(tabs);
+    const groups = new Set(
+      tabs
+        .map(tab => tab.group)
+        .filter(group => group?.tabs.every(tab => selected.has(tab)))
+    );
+    let elements = this.groupingElements(tabs);
+    if (!withinGroup) {
+      elements = [
+        ...new Set(
+          elements.map(element =>
+            groups.has(element.group) ? element.group : element
+          )
+        ),
+      ];
+    }
+    const moving = new Set(elements);
+    const sourceGroups = new Set(tabs.map(tab => tab.group).filter(Boolean));
+    const eligible = browser.nonHiddenTabs.filter(tab =>
+      withinGroup ? tab.group === partition : tab.pinned === partition
+    );
+    const stops = [
+      ...new Set(
+        eligible.map(tab => {
+          if (
+            !withinGroup &&
+            tab.group &&
+            (edge ||
+              groups.size ||
+              sourceGroups.has(tab.group) ||
+              tab.group.collapsed)
+          ) {
+            return tab.group;
+          }
+          return tab.splitview || tab;
+        })
+      ),
+    ];
+    const remaining = stops.filter(stop => !moving.has(stop));
+    if (withinGroup) {
+      if (!remaining.length) {
         return;
       }
-      // A group at the strip edge can still release its first or last tab.
-      target = current.group;
-    } else if (!withinGroup && target.group?.collapsed) {
-      target = target.group;
-    } else {
-      target = target.splitview || target;
+      const anchor = direction > 0 ? elements.at(-1) : elements[0];
+      const index = stops.indexOf(anchor);
+      const slot = stops
+        .slice(0, index)
+        .filter(stop => !moving.has(stop)).length;
+      const slots = remaining.length + 1;
+      const endpoint = direction > 0 ? remaining.length : 0;
+      const destination = edge
+        ? endpoint
+        : (((slot + direction * count) % slots) + slots) % slots;
+      if (destination === remaining.length) {
+        browser.moveTabsAfter(elements, remaining.at(-1));
+      } else {
+        browser.moveTabsBefore(elements, remaining[destination]);
+      }
+      return;
     }
-    const element = current.splitview || current;
-    if (element !== target) {
-      const after = withinGroup ? destination > index : direction > 0;
-      browser[after ? "moveTabAfter" : "moveTabBefore"](element, target);
+    const anchorTab = direction > 0 ? tabs.at(-1) : tabs[0];
+    const anchor =
+      anchorTab.group && sourceGroups.has(anchorTab.group)
+        ? anchorTab.group
+        : anchorTab.splitview || anchorTab;
+    const index = stops.indexOf(anchor);
+    let candidates =
+      direction > 0 ? stops.slice(index) : stops.slice(0, index + 1).reverse();
+    candidates = candidates.filter(stop => !moving.has(stop));
+    const endpoint = direction > 0 ? remaining.at(-1) : remaining[0];
+    const target = edge
+      ? endpoint
+      : candidates[Math.min(count, candidates.length) - 1];
+    if (target) {
+      browser[direction > 0 ? "moveTabsAfter" : "moveTabsBefore"](
+        elements,
+        target
+      );
+    } else {
+      // At a boundary, still close gaps without moving the leading element.
+      const pivot = direction > 0 ? elements.pop() : elements.shift();
+      if (elements.length) {
+        browser[direction > 0 ? "moveTabsBefore" : "moveTabsAfter"](
+          elements,
+          pivot
+        );
+      }
     }
   }
 
   edge(direction, move = false, withinGroup = false) {
-    const browser = this.window.gBrowser;
-    const current = browser.selectedTab;
-    const tabs =
-      move && !withinGroup
-        ? browser.nonHiddenTabs.filter(tab => tab.pinned === current.pinned)
-        : this.navigationStops(withinGroup);
-    let target = direction > 0 ? tabs.at(-1) : tabs[0];
+    if (move) {
+      this.moveSelection(direction, 1, withinGroup, true);
+      return;
+    }
+    const tabs = this.navigationStops(withinGroup);
+    const target = direction > 0 ? tabs.at(-1) : tabs[0];
     if (!target) {
       return;
     }
-    if (!move) {
-      this.activate(target);
-      return;
-    }
-    target = (!withinGroup && target.group) || target.splitview || target;
-    const element = current.splitview || current;
-    if (element !== target) {
-      browser[direction > 0 ? "moveTabAfter" : "moveTabBefore"](
-        element,
-        target
-      );
-    }
+    this.activate(target);
   }
 
   execute(action) {

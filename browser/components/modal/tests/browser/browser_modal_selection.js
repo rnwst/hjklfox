@@ -11,7 +11,7 @@ UrlbarTestUtils.init(this);
 
 async function keys(sequence) {
   for (const key of sequence) {
-    EventUtils.synthesizeKey(key);
+    EventUtils.synthesizeKey(key, { shiftKey: /^[A-Z]$/.test(key) });
   }
   await TestUtils.waitForTick();
 }
@@ -539,6 +539,268 @@ add_task(async function selected_tabs_group_and_move_together() {
     gBrowser.tabGroupMenu.close();
     gBrowser.clearMultiSelectedTabs();
     gModalNavigation.enterCommand();
+    for (const tab of tabs) {
+      await BrowserTestUtils.removeTab(tab);
+    }
+  }
+});
+
+add_task(async function movement_preserves_selected_blocks_and_groups() {
+  const tabs = [];
+  try {
+    for (let i = 0; i < 7; i++) {
+      tabs.push(
+        await BrowserTestUtils.openNewForegroundTab(gBrowser, "about:blank")
+      );
+    }
+    const [a, b, c, d, e, f, g] = tabs;
+    const order = () => gBrowser.tabs.filter(tab => tabs.includes(tab));
+    const select = async selected => {
+      await activate(selected[0]);
+      gModalNavigation.tabs.replaceSelection(selected);
+    };
+    await select([a, c]);
+    await keys("tJ");
+    Assert.deepEqual(
+      order(),
+      [b, d, a, c, e, f, g],
+      "Close gaps and cross one tab"
+    );
+    Assert.deepEqual(gBrowser.selectedTabs, [a, c], "Keep the selection");
+    Assert.equal(gBrowser.selectedTab, a, "Keep the active tab");
+    await keys("2tK");
+    Assert.deepEqual(
+      order(),
+      [a, c, b, d, e, f, g],
+      "Count from the block's leading edge"
+    );
+    await keys("tL");
+    Assert.deepEqual(
+      order(),
+      [b, d, e, f, g, a, c],
+      "Move the whole block to the end"
+    );
+    await keys("tH");
+    Assert.deepEqual(
+      order(),
+      [a, c, b, d, e, f, g],
+      "Move the whole block to the start"
+    );
+
+    gBrowser.moveTabsBefore([a, c], b);
+    const group = gBrowser.addTabGroup([a, c, b], {
+      insertBefore: a,
+      label: "Stationary",
+    });
+    await select([a, b]);
+    await keys("tJ");
+    Assert.deepEqual(
+      order(),
+      [c, a, b, d, e, f, g],
+      "Outer members exit before crossing D"
+    );
+    Assert.deepEqual(group.tabs, [c], "The partial group stays behind");
+    Assert.ok(!a.group && !b.group, "Moved members leave their group");
+    Assert.deepEqual(
+      gBrowser.selectedTabs,
+      [a, b],
+      "Extraction retains both selected tabs"
+    );
+    await keys("tJ");
+    Assert.deepEqual(order(), [c, d, a, b, e, f, g], "The next move crosses D");
+    group.addTabs([a, b]);
+    await select([c, b]);
+    await keys("tK");
+    Assert.deepEqual(
+      order(),
+      [c, b, a, d, e, f, g],
+      "Backward extraction is symmetric"
+    );
+    Assert.deepEqual(group.tabs, [a]);
+
+    group.addTabs([c, b]);
+    group.collapsed = true;
+    const id = group.id;
+    await select([a, c, b, e]);
+    await keys("tJ");
+    Assert.deepEqual(
+      order(),
+      [d, f, a, c, b, e, g],
+      "A full group travels with the block"
+    );
+    Assert.deepEqual(
+      group.tabs,
+      [a, c, b],
+      "Group membership and order survive"
+    );
+    Assert.equal(group.id, id, "Keep group identity");
+    Assert.ok(group.collapsed, "Keep folding");
+    Assert.equal(group.label, "Stationary", "Keep the label");
+    await keys("tL");
+    Assert.deepEqual(
+      order(),
+      [d, f, g, a, c, b, e],
+      "Endpoint movement keeps the group"
+    );
+    await keys("tH");
+    Assert.deepEqual(
+      order(),
+      [a, c, b, e, d, f, g],
+      "Backward endpoint keeps block order"
+    );
+    Assert.deepEqual(gBrowser.selectedTabs, [a, c, b, e]);
+  } finally {
+    gBrowser.clearMultiSelectedTabs();
+    for (const tab of tabs) {
+      await BrowserTestUtils.removeTab(tab);
+    }
+  }
+});
+
+add_task(async function movement_splits_pins_and_group_scopes() {
+  const tabs = [];
+  try {
+    for (let i = 0; i < 6; i++) {
+      tabs.push(
+        await BrowserTestUtils.openNewForegroundTab(gBrowser, "about:blank")
+      );
+    }
+    const [a, b, c, d, e, f] = tabs;
+    const order = () => gBrowser.tabs.filter(tab => tabs.includes(tab));
+    const select = async selected => {
+      await activate(selected[0]);
+      gModalNavigation.tabs.replaceSelection(selected);
+    };
+    gBrowser.addTabSplitView([a, b], { insertBefore: a });
+    const group = gBrowser.addTabGroup([a.splitview, c], {
+      insertBefore: a.splitview,
+    });
+    await select([a]);
+    await keys("tJ");
+    Assert.ok(
+      !a.splitview && !b.splitview,
+      "A partially selected split detaches"
+    );
+    Assert.deepEqual(
+      group.tabs,
+      [b, c],
+      "The partner stays in its original group"
+    );
+    Assert.deepEqual(order(), [b, c, a, d, e, f]);
+    const split = gBrowser.addTabSplitView([d, e], { insertBefore: d });
+    await select([d, e]);
+    await keys("tJ");
+    Assert.equal(d.splitview, split, "A fully selected split stays intact");
+    Assert.deepEqual(order(), [b, c, a, f, d, e]);
+
+    group.addTabs([a, f]);
+    await select([b, a]);
+    await keys("tgJ");
+    Assert.deepEqual(
+      group.tabs,
+      [c, f, b, a],
+      "Reorder the selected block within its group"
+    );
+    await keys("tgJ");
+    Assert.deepEqual(
+      group.tabs,
+      [b, a, c, f],
+      "The block wraps within the group"
+    );
+    await keys("tgL");
+    Assert.deepEqual(group.tabs, [c, f, b, a]);
+    await keys("tgH");
+    Assert.deepEqual(group.tabs, [b, a, c, f]);
+    await select([b, a, c, f]);
+    await keys("999tgJ");
+    Assert.deepEqual(
+      group.tabs,
+      [b, a, c, f],
+      "A wholly selected group cannot reorder itself"
+    );
+
+    gBrowser.pinTab(b);
+    gBrowser.pinTab(a);
+    gBrowser.pinTab(c);
+    await select([b, c, d, e]);
+    await keys("tL");
+    Assert.deepEqual(
+      order(),
+      [a, b, c, f, d, e],
+      "Mixed selections stay in their pinned sections"
+    );
+    Assert.ok(b.pinned && c.pinned && !d.pinned && !e.pinned);
+    await keys("tH");
+    Assert.deepEqual(order(), [b, c, a, d, e, f]);
+    Assert.deepEqual(gBrowser.selectedTabs, [b, c, d, e]);
+  } finally {
+    gBrowser.clearMultiSelectedTabs();
+    for (const tab of tabs) {
+      await BrowserTestUtils.removeTab(tab);
+    }
+  }
+});
+
+add_task(async function moving_multiple_groups_does_not_merge_them() {
+  const tabs = [];
+  try {
+    for (let i = 0; i < 6; i++) {
+      tabs.push(
+        await BrowserTestUtils.openNewForegroundTab(gBrowser, "about:blank")
+      );
+    }
+    const [a, b, c, d, e, f] = tabs;
+    const left = gBrowser.addTabGroup([a, b], { insertBefore: a });
+    const right = gBrowser.addTabGroup([d, e], { insertBefore: d });
+    const order = () => gBrowser.tabs.filter(tab => tabs.includes(tab));
+    await activate(a);
+    gModalNavigation.tabs.replaceSelection([a, b, c]);
+    await keys("tJ");
+    Assert.deepEqual(
+      order(),
+      [d, e, a, b, c, f],
+      "Whole groups cross expanded groups as a unit"
+    );
+    Assert.deepEqual(left.tabs, [a, b]);
+    Assert.deepEqual(
+      right.tabs,
+      [d, e],
+      "The destination group does not absorb the block"
+    );
+
+    gModalNavigation.tabs.replaceSelection([d, a]);
+    await keys("tgL");
+    Assert.deepEqual(
+      order(),
+      [e, d, b, a, c, f],
+      "Group-scoped moves act in every selected group"
+    );
+    Assert.deepEqual(gBrowser.selectedTabs, [d, a]);
+    gModalNavigation.tabs.replaceSelection([e, d, b, a]);
+    await keys("tL");
+    Assert.deepEqual(
+      order(),
+      [c, f, e, d, b, a],
+      "Both groups move intact in strip order"
+    );
+    await keys("999tJ");
+    Assert.deepEqual(
+      order(),
+      [c, f, e, d, b, a],
+      "A boundary move preserves group order"
+    );
+    Assert.deepEqual(right.tabs, [e, d]);
+    Assert.deepEqual(left.tabs, [b, a]);
+    gBrowser.hideTab(f);
+    await keys("tK");
+    Assert.deepEqual(
+      order().filter(tab => tab !== f),
+      [e, d, b, a, c],
+      "Hidden tabs do not consume steps"
+    );
+    Assert.equal(gBrowser.selectedTab, a);
+  } finally {
+    gBrowser.clearMultiSelectedTabs();
     for (const tab of tabs) {
       await BrowserTestUtils.removeTab(tab);
     }

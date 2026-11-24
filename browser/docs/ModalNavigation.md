@@ -77,13 +77,13 @@ colors, the tint is omitted.
 | `tu` | Reopen the last closed tab (replaces Ctrl-Shift-T) |
 | `tq` | Close all selected tabs, or the current tab |
 | `tv` | Enter tab selection mode |
-| `tJ`, `tK` | Move the current tab forward or backward |
+| `tJ`, `tK` | Move the selected tabs forward or backward |
 | `th`, `tl` | Switch to the first or last tab |
-| `tH`, `tL` | Move the current tab to the beginning or end of the tab strip |
+| `tH`, `tL` | Move the selected tabs to the beginning or end of the tab strip |
 | `tgj`, `tgk` | Next or previous tab within the current group |
-| `tgJ`, `tgK` | Move the current tab within its group, wrapping at the edges |
+| `tgJ`, `tgK` | Move the selected tabs within their groups, wrapping at the edges |
 | `tgh`, `tgl` | Switch to the first or last tab within the current group |
-| `tgH`, `tgL` | Move the current tab to the beginning or end of its group |
+| `tgH`, `tgL` | Move the selected tabs to the beginning or end of their groups |
 | `tgn` | Create a named group with the selected tabs |
 | `tgm` | Move the selected tabs to an existing group |
 | `tgu` | Remove the selected tabs from their groups |
@@ -154,28 +154,38 @@ shows its active tab with a position such as `2/6` instead of an additional-tab
 count. If its last-active tab disappears, navigation uses the most recently
 active remaining eligible member, falling back to tab order.
 
-`tJ` and `tK` move the current tab forward and backward, keeping it selected.
-Counts use the same stops as `tj` and `tk`: a folded group counts once, while
-each member of an unfolded group counts separately. Moving past a folded group
-places the tab outside it; targeting an unfolded member places it next to that
-member inside the group. Tabs can leave their group in either direction,
-including at the beginning or end of the tab strip. Moves do not wrap around
-the window or cross the pinned/unpinned boundary. Split views move as a unit.
+`tJ` and `tK` move all selected tabs as a contiguous block, closing gaps and
+preserving tab order, selection, and the active tab. With no multiselection they
+act on the current tab. Counts start at the selection's leading edge in the
+movement direction; selected tabs do not consume steps. A folded group or split
+view counts as one stop. Other unfolded groups contribute their individual
+members, and targeting a member places the block inside that group.
 
-`tgJ` and `tgK` reorder the current tab only within its group. They support counts
-and wrap at the group edges: moving forward from the last position puts the tab
-first; moving backward from the first puts it last. They work in folded groups
-without unfolding them, keep the moved tab selected, and do nothing on an
-ungrouped tab. For example, `2tgJ` moves two positions within the group.
+Fully selected groups move intact, preserving their identity and folding.
+When moving whole groups, destination groups count as single stops, so groups
+are never nested. Partially selected groups stay behind: selected members leave
+them. Exiting the leading member's partial group counts as one step. For example,
+moving the outer members of `[A B C]` forward once produces `[B] A C`, without
+crossing the next tab. Fully selected split views stay intact; selecting only
+part of a split detaches the selected panes, leaving their partners open in their
+original group. Moves do not wrap around the window. Mixed pinned/unpinned
+selections move as separate blocks within their respective sections.
+
+`tgJ` and `tgK` reorder selected tabs as a block within each of their groups,
+leaving ungrouped tabs alone. They support counts and wrap through the available
+block positions: moving forward from the last position puts the block first;
+moving backward from the first puts it last. They preserve folding and membership.
+A wholly selected group has no other position to move to.
 
 `th` and `tl` select the first and last navigation stops in the window, using
 the last-active member when the endpoint is a folded group. `tgh` and `tgl`
 select the first and last eligible members of the current group.
 
-`tH` and `tL` move the current tab to the beginning and end of the tab strip,
-leaving its group. Pinned tabs stay in the pinned section; unpinned tabs stay
+`tH` and `tL` move the selected block to the beginning and end of the tab strip,
+preserving whole selected groups and leaving partial groups behind.
+Pinned tabs stay in the pinned section; unpinned tabs stay
 after it. `tgH` and `tgL` instead move to the first and last positions within
-the current group. These commands preserve selection and folding. Group-scoped
+each selected tab's group. These commands preserve selection and folding. Group-scoped
 navigation and reordering do nothing on ungrouped tabs. Endpoint commands ignore numeric prefixes;
 hidden and closing tabs are excluded from navigation and endpoint selection.
 

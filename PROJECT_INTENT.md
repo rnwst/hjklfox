@@ -36,8 +36,10 @@ handoff is not a roadmap.
   their current mode. Preserve native editing defaults in every mode.
 - Tab selection uses native Firefox multiselection, a fixed anchor, and a separate
   cursor, without changing the displayed tab. Reversing the cursor shrinks the
-  range. Split-view members are selected individually; grouping only one member
-  separates it first. Traversing a folded group unfolds it permanently.
+  range. Split-view members are selected individually; grouping or moving only
+  one member separates it first. Tab movement closes selection gaps while
+  preserving order and fully selected groups; partially selected groups stay
+  behind. Traversing a folded group unfolds it permanently.
   Page loads do not exit tab-selection mode or reset its range.
   An amber toolbar fill identifies selection mode. Escape retains the selection
   for grouping or closing. Split creation uses the native tab picker,

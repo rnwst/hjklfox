@@ -223,11 +223,11 @@ add_task(async function counted_tab_movement() {
       "Moving to a member of an unfolded group enters that group"
     );
     Assert.equal(a.group, group);
-    await keys("3tJ");
+    await keys("2tJ");
     Assert.deepEqual(
       order(),
       [b1, b2, b3, c, a, d],
-      "Forward counts traverse unfolded members and leave the group"
+      "Leaving the source group consumes one step, then passes the next tab"
     );
     Assert.ok(!a.group, "tJ can move a tab out of its group");
     await keys("tK");
