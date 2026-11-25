@@ -431,10 +431,6 @@ export class ModalUrlbar {
       return false;
     }
     const command = !event.shiftKey && ADDRESS_BINDINGS[keyToken(event)];
-    if (command === "address.next" || command === "address.previous") {
-      this.select(command === "address.previous").catch(console.error);
-      return true;
-    }
     if (command === "address.engines") {
       if (this.mode === "group-move") {
         return true;
@@ -543,18 +539,6 @@ export class ModalUrlbar {
         this.window.gBrowser.selectedBrowser.contentPrincipal.originAttributes
           .userContextId
     );
-  }
-
-  async select(reverse) {
-    const bar = this.window.gURLBar;
-    const version = this.version;
-    if (!bar.view.isOpen) {
-      bar.startQuery({ allowAutofill: false });
-      await bar.lastQueryContextPromise;
-    }
-    if (version === this.version && bar.focused && bar.view.isOpen) {
-      bar.view.selectBy(1, { reverse });
-    }
   }
 
   reset() {

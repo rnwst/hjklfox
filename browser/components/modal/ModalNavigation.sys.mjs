@@ -7,6 +7,8 @@ import {
   keyToken,
   hintLabels,
   SELECT_BINDINGS,
+  INSERT_BINDINGS,
+  ADDRESS_BINDINGS,
 } from "moz-src:///browser/components/modal/Keymap.sys.mjs";
 import { configureSimplifiedChrome } from "moz-src:///browser/components/modal/SimplifiedChrome.sys.mjs";
 import { ModalKeyPopup } from "moz-src:///browser/components/modal/ModalKeyPopup.sys.mjs";
@@ -51,6 +53,8 @@ export class ModalNavigation {
     this.mode = "command";
     this.suppressed = new Set();
     this.forwardedKeys = new Map();
+    this.arrowAltRelease = false;
+    this.arrowFocusVersion = 0;
     this.pageBlockedKeys = new Set();
     this.generation = 0;
     this.hints = null;
@@ -270,6 +274,9 @@ export class ModalNavigation {
     }
     this.cancelHints(false);
     this.resetKeys();
+    if (this.mode !== mode) {
+      this.arrowFocusVersion++;
+    }
     this.mode = mode;
     this.updateShortcuts();
     this.find.updateOptions();
@@ -470,12 +477,16 @@ export class ModalNavigation {
     this.setMode(this.chromeEditing ? "address" : "command");
   }
 
-  hasOpenPopup() {
+  hasOpenPopup(allowAddress = false) {
     return [
       ...this.window.document.querySelectorAll(
         'panel:not([role="tooltip"]), menupopup'
       ),
-    ].some(popup => popup.state === "open" || popup.state === "showing");
+    ].some(
+      popup =>
+        !(allowAddress && popup === this.window.gURLBar.view.panel) &&
+        (popup.state === "open" || popup.state === "showing")
+    );
   }
 
   isNativePopup(popup) {
@@ -559,6 +570,7 @@ export class ModalNavigation {
       return;
     }
     if (event.type === "TabSelect") {
+      this.arrowFocusVersion++;
       this.tabs.recordSelection(event.target);
       this.handleTabSelect();
       return;
@@ -569,11 +581,13 @@ export class ModalNavigation {
     }
     if (event.type === "blur") {
       if (event.target === win) {
+        this.arrowFocusVersion++;
         this.cancelHints();
         this.resetKeys();
         this.suppressed.clear();
-        for (const { actor, command } of this.forwardedKeys.values()) {
-          this.sendArrow(actor, { command, type: "keyup" });
+        this.arrowAltRelease = false;
+        for (const { target, command } of this.forwardedKeys.values()) {
+          this.sendArrow(target, { command, type: "keyup" });
         }
         this.forwardedKeys.clear();
         this.pageBlockedKeys.clear();
@@ -583,14 +597,16 @@ export class ModalNavigation {
     let active = this.activeElement;
     let inContent = active === win.gBrowser.selectedBrowser;
     if (event.type === "focusin") {
+      this.arrowFocusVersion++;
       this.handleChromeFocus(event, active);
       return;
     }
+    this.handleAltKey(event);
     const forwarded = this.forwardedKeys.get(event.code || event.key);
     if (event.isTrusted && forwarded) {
       this.consume(event);
       if (event.type !== "keypress") {
-        this.sendArrow(forwarded.actor, {
+        this.sendArrow(forwarded.target, {
           command: forwarded.command,
           type: event.type,
           repeat: event.repeat,
@@ -604,7 +620,10 @@ export class ModalNavigation {
       }
       return;
     }
-    if (this.nativeDialogs || this.hasOpenPopup()) {
+    if (
+      this.nativeDialogs ||
+      this.hasOpenPopup(this.isAddressBarFocus(active))
+    ) {
       this.finishKey(event);
       if (event.type === "keyup") {
         this.pageBlockedKeys.delete(event.code || event.key);
@@ -620,6 +639,9 @@ export class ModalNavigation {
     }
     if (event.type !== "keydown") {
       this.finishKey(event);
+      return;
+    }
+    if (this.handleArrowKey(event, inContent)) {
       return;
     }
     if (this.inDOMFullscreen) {
@@ -684,6 +706,43 @@ export class ModalNavigation {
     this.handleCommandKey(event);
   }
 
+  handleAltKey(event) {
+    if (!event.isTrusted || event.key !== "Alt") {
+      return;
+    }
+    if (event.type === "keyup") {
+      if (this.arrowAltRelease) {
+        // The consumed letter must not make this look like an Alt-only tap.
+        event.preventDefault();
+      }
+      this.arrowAltRelease = false;
+    } else if (event.type === "keydown" && !event.repeat) {
+      this.arrowAltRelease = false;
+    }
+  }
+
+  handleArrowKey(event, inContent) {
+    if (event.shiftKey) {
+      return false;
+    }
+    let bindings;
+    if (inContent && this.mode === "insert") {
+      bindings = INSERT_BINDINGS;
+    } else if (this.mode === "address" && this.isAddressBarFocus()) {
+      bindings = ADDRESS_BINDINGS;
+    }
+    const command = bindings?.[keyToken(event, { allowAlt: true })];
+    if (!command?.startsWith("key.")) {
+      return false;
+    }
+    this.arrowAltRelease = true;
+    this.consume(event);
+    if (!event.repeat) {
+      this.forwardArrow(event, { command });
+    }
+    return true;
+  }
+
   handleCommandKey(event) {
     const token = keyToken(event);
     if (token === null) {
@@ -730,23 +789,55 @@ export class ModalNavigation {
         this.cancelHints();
       }
       if (action.command.startsWith("key.")) {
-        const actor = this.focusedActor();
-        this.forwardedKeys.set(event.code || event.key, {
-          actor,
-          command: action.command,
-        });
-        this.sendArrow(actor, {
-          ...action,
-          type: "keydown",
-          repeat: event.repeat,
-        });
+        this.forwardArrow(event, action);
       } else {
         this.execute(action);
       }
     }
   }
 
-  sendArrow(actor, { command, type, repeat = false, count = 1 }) {
+  forwardArrow(event, action) {
+    const target = {
+      browser: this.window.gBrowser.selectedBrowser,
+      actor: this.focusedActor(),
+      input: this.mode === "address" ? this.window.gURLBar.inputField : null,
+      focusVersion: this.arrowFocusVersion,
+    };
+    this.forwardedKeys.set(event.code || event.key, {
+      target,
+      command: action.command,
+    });
+    this.sendArrow(target, {
+      ...action,
+      type: "keydown",
+      repeat: event.repeat,
+    });
+  }
+
+  canSendArrow(target) {
+    if (
+      this.window.closed ||
+      !this.enabled ||
+      this.nativeDialogs ||
+      target.browser !== this.window.gBrowser.selectedBrowser ||
+      this.hasOpenPopup(!!target.input)
+    ) {
+      return false;
+    }
+    if (target.input) {
+      return (
+        this.mode === "address" &&
+        this.activeElement === target.input &&
+        this.arrowFocusVersion === target.focusVersion
+      );
+    }
+    return (
+      this.activeElement === target.browser &&
+      target.actor === this.focusedActor()
+    );
+  }
+
+  sendArrow(target, { command, type, repeat = false, count = 1 }) {
     const key = {
       "key.left": "ArrowLeft",
       "key.down": "ArrowDown",
@@ -755,13 +846,7 @@ export class ModalNavigation {
     }[command];
     // Dispatch after the original key finishes its input transaction.
     Services.tm.dispatchToMainThread(() => {
-      if (
-        this.window.closed ||
-        !this.enabled ||
-        this.hasOpenPopup() ||
-        this.activeElement !== this.window.gBrowser.selectedBrowser ||
-        actor !== this.focusedActor()
-      ) {
+      if (!this.canSendArrow(target)) {
         return;
       }
       this.keyProcessor ||= Cc[

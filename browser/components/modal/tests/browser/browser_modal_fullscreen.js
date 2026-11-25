@@ -132,6 +132,23 @@ add_task(async function embedded_player_fullscreen() {
         )
       );
     });
+    EventUtils.synthesizeKey("k", { altKey: true });
+    await SpecialPowers.spawn(context, [], async () => {
+      await ContentTaskUtils.waitForCondition(() =>
+        content.wrappedJSObject.keyEvents.some(
+          event => event.type === "keyup" && event.key === "ArrowUp"
+        )
+      );
+      const arrows = content.wrappedJSObject.keyEvents.filter(event =>
+        event.key.startsWith("Arrow")
+      );
+      Assert.deepEqual(
+        arrows.map(event => event.type),
+        ["keydown", "keyup"],
+        "Insert shortcuts send arrows to fullscreen frames"
+      );
+      Assert.ok(arrows.every(event => !event.ctrlKey && !event.altKey));
+    });
     await exitFullscreen(browser, true);
   });
 });

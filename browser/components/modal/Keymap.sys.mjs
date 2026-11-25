@@ -74,26 +74,36 @@ export const SELECT_BINDINGS = Object.freeze({
   l: "selection.last",
 });
 
+export const ALT_ARROW_BINDINGS = Object.freeze({
+  "A-h": "key.left",
+  "A-j": "key.down",
+  "A-k": "key.up",
+  "A-l": "key.right",
+});
+
+export const INSERT_BINDINGS = ALT_ARROW_BINDINGS;
+
 export const ADDRESS_BINDINGS = Object.freeze({
-  "C-n": "address.next",
-  "C-p": "address.previous",
+  ...ALT_ARROW_BINDINGS,
   "C-Space": "address.engines",
 });
 
-export function keyToken(event) {
+export function keyToken(event, { allowAlt = false } = {}) {
   if (
     event.isComposing ||
     event.key === "Dead" ||
     event.key === "Process" ||
-    event.altKey ||
+    (event.altKey && (!allowAlt || event.ctrlKey)) ||
     event.metaKey ||
     event.getModifierState?.("AltGraph")
   ) {
     return null;
   }
   const key =
-    event.ctrlKey && !event.shiftKey ? event.key.toLowerCase() : event.key;
-  return `${event.ctrlKey ? "C-" : ""}${key === " " ? "Space" : key}`;
+    (event.ctrlKey || event.altKey) && !event.shiftKey
+      ? event.key.toLowerCase()
+      : event.key;
+  return `${event.altKey ? "A-" : ""}${event.ctrlKey ? "C-" : ""}${key === " " ? "Space" : key}`;
 }
 
 /** Parse modal key sequences without depending on browser state. */

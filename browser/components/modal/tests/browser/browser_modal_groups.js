@@ -170,6 +170,15 @@ add_task(async function keyboard_group_management() {
     );
     await selectTab(b);
     await groupQuery("m", "Keyboard Research", "group-move");
+    const caret = gURLBar.selectionEnd;
+    gURLBar.inputField.setSelectionRange(caret, caret);
+    EventUtils.synthesizeKey("h", { altKey: true });
+    await TestUtils.waitForCondition(
+      () => gURLBar.selectionStart === caret - 1
+    );
+    gURLBar.view.selectedRowIndex = -1;
+    EventUtils.synthesizeKey("j", { altKey: true });
+    await TestUtils.waitForCondition(() => gURLBar.view.selectedRowIndex === 0);
     EventUtils.synthesizeKey("KEY_Enter");
     await TestUtils.waitForCondition(() => b.group === group);
     Assert.equal(gBrowser.selectedTab, b);

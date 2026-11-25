@@ -296,6 +296,260 @@ add_task(async function command_mode_translates_hjkl_to_arrows() {
   });
 });
 
+add_task(async function insert_mode_translates_alt_hjkl_to_plain_arrows() {
+  await BrowserTestUtils.withNewTab(KEYBOARD_PAGE, async browser => {
+    browser.focus();
+    gModalNavigation.setMode("insert");
+    await SpecialPowers.spawn(browser, [], () => {
+      content.wrappedJSObject.blockKeys = true;
+      content.document.body.style.height = "5000px";
+    });
+    for (const [letter, key] of Object.entries({
+      h: "ArrowLeft",
+      j: "ArrowDown",
+      k: "ArrowUp",
+      l: "ArrowRight",
+    })) {
+      await SpecialPowers.spawn(browser, [], () => {
+        content.wrappedJSObject.keyEvents.length = 0;
+      });
+      EventUtils.synthesizeKey(letter, { altKey: true, type: "keydown" });
+      await SpecialPowers.spawn(browser, [], () => {});
+      EventUtils.synthesizeKey(letter, {
+        altKey: true,
+        type: "keydown",
+        repeat: 2,
+      });
+      await SpecialPowers.spawn(browser, [], () => {});
+      // Alt may be released before the letter.
+      EventUtils.synthesizeKey(letter, { type: "keyup" });
+      const events = await recordedKeys(browser, key);
+      Assert.ok(
+        events.every(
+          event =>
+            event.key === key &&
+            event.code === key &&
+            event.isTrusted &&
+            !event.ctrlKey &&
+            !event.shiftKey &&
+            !event.altKey &&
+            !event.metaKey
+        ),
+        `${letter} delivers only trusted, unmodified arrows`
+      );
+      Assert.equal(events[0].type, "keydown");
+      Assert.equal(events.at(-1).type, "keyup");
+      Assert.ok(events.some(event => event.repeat));
+      Assert.equal(events.filter(event => event.type === "keyup").length, 1);
+      Assert.equal(gModalNavigation.mode, "insert");
+    }
+    await SpecialPowers.spawn(browser, [], () => {
+      Assert.equal(content.scrollY, 0, "Pages can cancel insert-mode arrows");
+    });
+  });
+});
+
+add_task(async function insert_arrows_move_native_editor_carets() {
+  await BrowserTestUtils.withNewTab(KEYBOARD_PAGE, async browser => {
+    browser.focus();
+    gModalNavigation.setMode("insert");
+    for (const tag of ["input", "textarea", "div"]) {
+      await SpecialPowers.spawn(browser, [tag], kind => {
+        const editor = content.document.createElement(kind);
+        editor.id = "caret-editor";
+        if (kind === "div") {
+          editor.contentEditable = true;
+          editor.textContent = "abc def";
+        } else {
+          editor.value = kind === "textarea" ? "abc def\nabc def" : "abc def";
+        }
+        content.document.body.append(editor);
+        editor.focus();
+        if (kind === "div") {
+          content.getSelection().collapse(editor.firstChild, 3);
+        } else {
+          editor.setSelectionRange(3, 3);
+        }
+      });
+      const moves = [
+        ["h", 2],
+        ["l", 3],
+        ...(tag === "textarea"
+          ? [
+              ["j", 11],
+              ["k", 3],
+            ]
+          : []),
+      ];
+      for (const [key, position] of moves) {
+        await SpecialPowers.spawn(browser, [], () => {
+          content.wrappedJSObject.keyEvents.length = 0;
+        });
+        EventUtils.synthesizeKey(key, { altKey: true });
+        await recordedKeys(
+          browser,
+          { h: "ArrowLeft", l: "ArrowRight", j: "ArrowDown", k: "ArrowUp" }[key]
+        );
+        await SpecialPowers.spawn(
+          browser,
+          [tag, position],
+          (kind, expected) => {
+            const editor = content.document.getElementById("caret-editor");
+            Assert.equal(
+              kind === "div"
+                ? content.getSelection().focusOffset
+                : editor.selectionStart,
+              expected,
+              `Alt shortcut moves the ${kind} caret like a plain arrow`
+            );
+            Assert.equal(
+              kind === "div" ? editor.textContent : editor.value,
+              kind === "textarea" ? "abc def\nabc def" : "abc def",
+              "The shortcut does not edit the text"
+            );
+          }
+        );
+      }
+      await SpecialPowers.spawn(browser, [], () => {
+        content.document.getElementById("caret-editor").remove();
+      });
+    }
+  });
+});
+
+add_task(async function insert_arrows_preserve_other_keys_and_modes() {
+  await BrowserTestUtils.withNewTab(KEYBOARD_PAGE, async browser => {
+    browser.focus();
+    gModalNavigation.setMode("insert");
+    await SpecialPowers.spawn(browser, [], () => {
+      content.wrappedJSObject.blockKeys = true;
+    });
+    const preventNativeAlt = event => {
+      if (event.altKey) {
+        event.preventDefault();
+      }
+    };
+    window.windowRoot.addEventListener("keydown", preventNativeAlt, true);
+    try {
+      for (const modifiers of [
+        {},
+        { altKey: true, shiftKey: true },
+        { ctrlKey: true, altKey: true },
+        { altKey: true, metaKey: true },
+        { altKey: true, altGraphKey: true },
+      ]) {
+        for (const key of ["h", "j", "k", "l"]) {
+          await SpecialPowers.spawn(browser, [], () => {
+            content.wrappedJSObject.keyEvents.length = 0;
+          });
+          EventUtils.synthesizeKey(key, modifiers);
+          const events = await recordedKeys(browser, key);
+          Assert.ok(
+            events.some(event => event.key.toLowerCase() === key),
+            `${key} with ${JSON.stringify(modifiers)} reaches the page`
+          );
+          Assert.ok(
+            events.every(event => !event.key.startsWith("Arrow")),
+            "Other modifier combinations do not produce arrows"
+          );
+        }
+      }
+      for (const mode of ["command", "select", "address", "search"]) {
+        gModalNavigation.setMode(mode);
+        await SpecialPowers.spawn(browser, [], () => {
+          content.wrappedJSObject.keyEvents.length = 0;
+        });
+        for (const key of ["h", "j", "k", "l"]) {
+          EventUtils.synthesizeKey(key, { altKey: true });
+        }
+        Assert.deepEqual(
+          await recordedKeys(browser),
+          [],
+          `${mode} does not send insert-mode arrows`
+        );
+      }
+    } finally {
+      window.windowRoot.removeEventListener("keydown", preventNativeAlt, true);
+    }
+    gModalNavigation.setMode("insert");
+    await SpecialPowers.spawn(browser, [], () => {
+      content.wrappedJSObject.keyEvents.length = 0;
+    });
+    EventUtils.synthesizeKey("j", { altKey: true, type: "keydown" });
+    await SpecialPowers.spawn(browser, [], async () => {
+      await ContentTaskUtils.waitForCondition(() =>
+        content.wrappedJSObject.keyEvents.some(
+          event => event.key === "ArrowDown"
+        )
+      );
+    });
+    gModalNavigation.setMode("command");
+    EventUtils.synthesizeKey("j", { type: "keyup" });
+    Assert.deepEqual(
+      (await recordedKeys(browser, "ArrowDown")).map(event => event.key),
+      ["ArrowDown", "ArrowDown"],
+      "Changing mode while holding the shortcut still releases its arrow"
+    );
+  });
+});
+
+add_task(async function insert_arrow_tails_do_not_follow_focus() {
+  await BrowserTestUtils.withNewTab(KEYBOARD_PAGE, async browser => {
+    browser.focus();
+    gModalNavigation.setMode("insert");
+    EventUtils.synthesizeKey("l", { altKey: true, type: "keydown" });
+    await SpecialPowers.spawn(browser, [], async () => {
+      await ContentTaskUtils.waitForCondition(() =>
+        content.wrappedJSObject.keyEvents.some(
+          event => event.key === "ArrowRight"
+        )
+      );
+    });
+    gURLBar.focus();
+    gURLBar.value = "abc def";
+    gURLBar.inputField.setSelectionRange(3, 3);
+    EventUtils.synthesizeKey("l", {
+      altKey: true,
+      type: "keydown",
+      repeat: 2,
+    });
+    EventUtils.synthesizeKey("l", { type: "keyup" });
+    await TestUtils.waitForTick();
+    Assert.equal(gURLBar.value, "abc def");
+    Assert.equal(gURLBar.inputField.selectionStart, 3);
+    Assert.equal(gModalNavigation.forwardedKeys.size, 0);
+    EventUtils.synthesizeKey("KEY_Escape");
+  });
+});
+
+add_task(async function insert_arrows_do_not_interrupt_composition() {
+  await BrowserTestUtils.withNewTab(KEYBOARD_PAGE, async browser => {
+    browser.focus();
+    gModalNavigation.setMode("insert");
+    await SpecialPowers.spawn(browser, [], () => {
+      content.document.getElementById("editor").focus();
+    });
+    EventUtils.synthesizeComposition({ type: "compositionstart", key: null });
+    try {
+      for (const key of ["h", "j", "k", "l"]) {
+        EventUtils.synthesizeKey(key, { altKey: true });
+        const events = await recordedKeys(browser, key);
+        Assert.ok(
+          events.some(event => event.key === key && event.isComposing),
+          "The shortcut reaches the editor during IME composition"
+        );
+        Assert.ok(events.every(event => !event.key.startsWith("Arrow")));
+      }
+    } finally {
+      EventUtils.synthesizeComposition({
+        type: "compositioncommit",
+        data: "",
+        key: null,
+      });
+    }
+  });
+});
+
 add_task(async function insert_mode_delivers_keys_but_not_mode_transitions() {
   await BrowserTestUtils.withNewTab(KEYBOARD_PAGE, async browser => {
     browser.focus();
@@ -395,6 +649,18 @@ add_task(
           (await recordedKeys(browser)).map(event => event.type),
           ["keydown", "keypress", "keyup"]
         );
+        await SpecialPowers.spawn(browser, [], () => {
+          content.wrappedJSObject.blockKeys = true;
+          content.wrappedJSObject.keyEvents.length = 0;
+        });
+        for (const key of ["h", "j", "k", "l"]) {
+          EventUtils.synthesizeKey(key, { altKey: true });
+          const events = await recordedKeys(browser, key);
+          Assert.ok(
+            events.every(event => !event.key.startsWith("Arrow")),
+            "Disabling modal navigation restores the original Alt shortcuts"
+          );
+        }
       });
     } finally {
       await SpecialPowers.popPrefEnv();
@@ -442,6 +708,15 @@ add_task(async function remote_frames_follow_the_window_mode() {
     Assert.deepEqual(
       (await recordedKeys(frame, "x")).map(event => event.key),
       ["x", "x", "x"]
+    );
+    await SpecialPowers.spawn(frame, [], () => {
+      content.wrappedJSObject.keyEvents.length = 0;
+    });
+    EventUtils.synthesizeKey("h", { altKey: true });
+    Assert.deepEqual(
+      (await recordedKeys(frame, "ArrowLeft")).map(event => event.key),
+      ["ArrowLeft", "ArrowLeft"],
+      "Insert-mode arrows reach the focused remote frame"
     );
     await SpecialPowers.spawn(frame, [KEYBOARD_PAGE], async url => {
       const nested = content.document.createElement("iframe");

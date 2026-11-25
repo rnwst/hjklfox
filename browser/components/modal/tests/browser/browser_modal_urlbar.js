@@ -58,6 +58,23 @@ async function openMode(key, mode) {
   );
 }
 
+async function addressArrow(key, modifiers = {}) {
+  const arrow = {
+    h: "ArrowLeft",
+    j: "ArrowDown",
+    k: "ArrowUp",
+    l: "ArrowRight",
+  }[key];
+  const released = BrowserTestUtils.waitForEvent(
+    gURLBar.inputField,
+    "keyup",
+    false,
+    event => event.key === arrow
+  );
+  EventUtils.synthesizeKey(key, { altKey: true, ...modifiers });
+  await released;
+}
+
 async function chooseEngine(name) {
   await UrlbarTestUtils.promiseSearchComplete(window);
   const index = engineRows().findIndex(row => row.engine === name);
@@ -65,7 +82,7 @@ async function chooseEngine(name) {
   const query = gURLBar.value;
   gURLBar.view.selectedRowIndex = -1;
   for (let i = 0; i <= index; i++) {
-    EventUtils.synthesizeKey("n", { ctrlKey: true });
+    await addressArrow("j");
     Assert.equal(
       gURLBar.value,
       query,
@@ -340,7 +357,7 @@ add_task(
           unselectedBackground,
           "Hover does not paint an unselected suggestion as selected"
         );
-        EventUtils.synthesizeKey("n", { ctrlKey: true });
+        await addressArrow("j");
         Assert.equal(gURLBar.view.selectedResult, row.result);
         Assert.ok(row.hasAttribute("selected"));
         Assert.notEqual(
@@ -348,7 +365,7 @@ add_task(
           unselectedBackground,
           "Keyboard selection has a visible highlight"
         );
-        EventUtils.synthesizeKey("p", { ctrlKey: true });
+        await addressArrow("k");
         Assert.ok(!row.hasAttribute("selected"));
         Assert.equal(
           getComputedStyle(row).backgroundColor,
@@ -544,6 +561,330 @@ add_task(async function fuzzy_history_and_bookmarks() {
   });
 });
 
+add_task(
+  async function address_arrows_match_native_caret_and_result_navigation() {
+    await BrowserTestUtils.withNewTab(URL, async () => {
+      const snapshot = () => ({
+        value: gURLBar.value,
+        start: gURLBar.selectionStart,
+        end: gURLBar.selectionEnd,
+        selected: gURLBar.view.selectedRowIndex,
+        open: gURLBar.view.isOpen,
+      });
+      for (const [entry, mode] of [
+        ["f", "destinations"],
+        ["h", "history"],
+        ["m", "bookmarks"],
+        ["b", "tabs"],
+        ["s", null],
+        ["engines", "engines"],
+      ]) {
+        for (const [letter, arrow] of [
+          ["h", "ArrowLeft"],
+          ["j", "ArrowDown"],
+          ["k", "ArrowUp"],
+          ["l", "ArrowRight"],
+        ]) {
+          let expected;
+          for (const translated of [false, true]) {
+            await openMode(
+              entry === "engines" ? "f" : entry,
+              entry === "engines" ? "destinations" : mode
+            );
+            await UrlbarTestUtils.promiseAutocompleteResultPopup({
+              window,
+              value: entry === "b" ? "" : "nbla",
+            });
+            if (entry === "engines") {
+              EventUtils.synthesizeKey(" ", { ctrlKey: true });
+              await TestUtils.waitForCondition(
+                () => gModalNavigation.urlbar.mode === "engines"
+              );
+              await UrlbarTestUtils.promiseSearchComplete(window);
+            }
+            gURLBar.view.selectedRowIndex = 0;
+            gURLBar.inputField.setSelectionRange(1, 2);
+            if (translated) {
+              await addressArrow(letter);
+            } else {
+              EventUtils.synthesizeKey(`KEY_${arrow}`);
+            }
+            await TestUtils.waitForTick();
+            await gURLBar.lastQueryContextPromise;
+            if (translated) {
+              Assert.deepEqual(
+                snapshot(),
+                expected,
+                `${entry}: Alt-${letter} matches ${arrow}`
+              );
+            } else {
+              expected = snapshot();
+            }
+          }
+        }
+      }
+    });
+  }
+);
+
+add_task(async function address_arrows_repeat_as_trusted_unmodified_keys() {
+  await BrowserTestUtils.withNewTab("about:blank", async () => {
+    await openMode("f", "destinations");
+    await UrlbarTestUtils.promiseSearchComplete(window);
+    const events = [];
+    const record = event => events.push(event);
+    for (const type of ["keydown", "keypress", "keyup"]) {
+      gURLBar.inputField.addEventListener(type, record);
+    }
+    try {
+      for (const [letter, arrow, expected] of [
+        ["h", "ArrowLeft", 1],
+        ["l", "ArrowRight", 7],
+      ]) {
+        gURLBar.view.close();
+        gURLBar.value = "abc def ghi";
+        gURLBar.inputField.setSelectionRange(4, 4);
+        events.length = 0;
+        await addressArrow(letter, { repeat: 3 });
+        Assert.ok(
+          events.every(
+            event =>
+              event.key === arrow &&
+              event.code === arrow &&
+              event.isTrusted &&
+              !event.ctrlKey &&
+              !event.altKey &&
+              !event.metaKey &&
+              !event.shiftKey
+          )
+        );
+        Assert.equal(events[0].type, "keydown");
+        Assert.equal(events.at(-1).type, "keyup");
+        Assert.equal(events.filter(event => event.type === "keyup").length, 1);
+        Assert.ok(events.some(event => event.repeat));
+        Assert.equal(
+          gURLBar.selectionStart,
+          expected,
+          "Repeats move one character at a time"
+        );
+        Assert.equal(gURLBar.value, "abc def ghi");
+      }
+      for (const [letter, arrow] of [
+        ["j", "ArrowDown"],
+        ["k", "ArrowUp"],
+      ]) {
+        const prepare = async () => {
+          await UrlbarTestUtils.promiseAutocompleteResultPopup({
+            window,
+            value: "nbla",
+          });
+          gURLBar.view.close();
+          gURLBar.inputField.setSelectionRange(
+            gURLBar.value.length,
+            gURLBar.value.length
+          );
+        };
+        await prepare();
+        EventUtils.synthesizeKey(`KEY_${arrow}`);
+        await TestUtils.waitForTick();
+        await gURLBar.lastQueryContextPromise;
+        const expected = gURLBar.view.isOpen;
+        await prepare();
+        await addressArrow(letter);
+        await TestUtils.waitForTick();
+        await gURLBar.lastQueryContextPromise;
+        Assert.equal(
+          gURLBar.view.isOpen,
+          expected,
+          "Closed suggestions behave like a native arrow"
+        );
+      }
+    } finally {
+      for (const type of ["keydown", "keypress", "keyup"]) {
+        gURLBar.inputField.removeEventListener(type, record);
+      }
+    }
+  });
+});
+
+add_task(async function address_arrow_alt_release_does_not_activate_menus() {
+  await BrowserTestUtils.withNewTab("about:blank", async () => {
+    await openMode("f", "destinations");
+    await UrlbarTestUtils.promiseSearchComplete(window);
+    gURLBar.view.close();
+    for (const altFirst of [true, false]) {
+      gURLBar.value = "abc def";
+      gURLBar.inputField.setSelectionRange(3, 3);
+      let menuActivated = false;
+      const onMenuActive = () => {
+        menuActivated = true;
+      };
+      window.addEventListener("DOMMenuBarActive", onMenuActive);
+      const released = BrowserTestUtils.waitForEvent(
+        gURLBar.inputField,
+        "keyup",
+        false,
+        event => event.key === "ArrowLeft"
+      );
+      try {
+        EventUtils.synthesizeKey("KEY_Alt", { type: "keydown" });
+        EventUtils.synthesizeKey("h", { altKey: true, type: "keydown" });
+        for (const key of altFirst ? ["KEY_Alt", "h"] : ["h", "KEY_Alt"]) {
+          EventUtils.synthesizeKey(key, {
+            type: "keyup",
+            altKey: !altFirst && key === "h",
+          });
+        }
+        await released;
+        await TestUtils.waitForTick();
+        Assert.equal(gURLBar.selectionStart, 2);
+        Assert.equal(gModalNavigation.mode, "address");
+        Assert.ok(
+          !menuActivated,
+          "Releasing the arrow chord does not activate the menu bar"
+        );
+      } finally {
+        window.removeEventListener("DOMMenuBarActive", onMenuActive);
+      }
+    }
+  });
+});
+
+add_task(async function address_arrow_tails_do_not_cross_focus_or_tabs() {
+  await BrowserTestUtils.withNewTab(URL, async browser => {
+    const other = BrowserTestUtils.addTab(gBrowser, "about:blank");
+    try {
+      for (const switchTab of [false, true]) {
+        await openMode("f", "destinations");
+        await UrlbarTestUtils.promiseSearchComplete(window);
+        gURLBar.view.close();
+        gURLBar.value = "abc def";
+        gURLBar.inputField.setSelectionRange(3, 3);
+        EventUtils.synthesizeKey("l", { altKey: true, type: "keydown" });
+        browser.focus();
+        if (switchTab) {
+          await BrowserTestUtils.switchTab(gBrowser, other);
+        }
+        gURLBar.focus();
+        gURLBar.value = "abc def";
+        gURLBar.inputField.setSelectionRange(3, 3);
+        EventUtils.synthesizeKey("l", {
+          altKey: true,
+          type: "keydown",
+          repeat: true,
+        });
+        EventUtils.synthesizeKey("l", {
+          altKey: true,
+          type: "keydown",
+          repeat: true,
+        });
+        EventUtils.synthesizeKey("l", { type: "keyup" });
+        await TestUtils.waitForTick();
+        Assert.equal(
+          gURLBar.selectionStart,
+          3,
+          "Queued arrows and repeats cannot follow focus"
+        );
+        Assert.equal(gURLBar.value, "abc def");
+        Assert.equal(gModalNavigation.forwardedKeys.size, 0);
+        await addressArrow("l");
+        Assert.equal(
+          gURLBar.selectionStart,
+          4,
+          "A fresh shortcut works after releasing the held key"
+        );
+        if (switchTab) {
+          await BrowserTestUtils.switchTab(
+            gBrowser,
+            gBrowser.getTabForBrowser(browser)
+          );
+        }
+      }
+    } finally {
+      BrowserTestUtils.removeTab(other);
+    }
+  });
+});
+
+add_task(
+  async function address_arrows_exclude_old_bindings_modifiers_and_ime() {
+    await BrowserTestUtils.withNewTab("about:blank", async () => {
+      await openMode("f", "destinations");
+      await UrlbarTestUtils.promiseSearchComplete(window);
+      const events = [];
+      const block = event => {
+        events.push(event);
+        event.preventDefault();
+      };
+      gURLBar.inputField.addEventListener("keydown", block, true);
+      try {
+        for (const [key, modifiers] of [
+          ["n", { ctrlKey: true }],
+          ["p", { ctrlKey: true }],
+          ...["h", "j", "k", "l"].flatMap(letter => [
+            [letter, {}],
+            [letter, { altKey: true, shiftKey: true }],
+            [letter, { ctrlKey: true, altKey: true }],
+            [letter, { altKey: true, metaKey: true }],
+            [letter, { altKey: true, altGraphKey: true }],
+          ]),
+        ]) {
+          events.length = 0;
+          EventUtils.synthesizeKey(key, modifiers);
+          await TestUtils.waitForTick();
+          Assert.deepEqual(
+            events.map(event => event.key),
+            [key],
+            "Only the original key reaches the input"
+          );
+        }
+        EventUtils.synthesizeComposition({
+          type: "compositionstart",
+          key: null,
+        });
+        try {
+          for (const key of ["h", "j", "k", "l"]) {
+            events.length = 0;
+            EventUtils.synthesizeKey(key, { altKey: true });
+            Assert.deepEqual(
+              events.map(event => event.key),
+              [key]
+            );
+            Assert.ok(
+              events[0].isComposing,
+              "Composition keeps the original shortcut"
+            );
+          }
+        } finally {
+          EventUtils.synthesizeComposition({
+            type: "compositioncommit",
+            data: "",
+            key: null,
+          });
+        }
+        await SpecialPowers.pushPrefEnv({
+          set: [["browser.modal.enabled", false]],
+        });
+        try {
+          for (const key of ["h", "j", "k", "l"]) {
+            events.length = 0;
+            EventUtils.synthesizeKey(key, { altKey: true });
+            Assert.deepEqual(
+              events.map(event => event.key),
+              [key],
+              "Disabling modal restores the original keys"
+            );
+          }
+        } finally {
+          await SpecialPowers.popPrefEnv();
+        }
+      } finally {
+        gURLBar.inputField.removeEventListener("keydown", block, true);
+      }
+    });
+  }
+);
+
 add_task(async function results_without_arrow_keys() {
   await BrowserTestUtils.withNewTab("about:blank", async () => {
     await openMode("h", "history");
@@ -554,17 +895,17 @@ add_task(async function results_without_arrow_keys() {
     Assert.greaterOrEqual(UrlbarTestUtils.getResultCount(window), 2);
     gURLBar.view.selectedRowIndex = 0;
     const first = gURLBar.view.selectedResult.payload.url;
-    EventUtils.synthesizeKey("n", { ctrlKey: true });
+    await addressArrow("j");
     Assert.notEqual(
       gURLBar.view.selectedResult.payload.url,
       first,
-      "Ctrl-n selects next result"
+      "Alt-j selects next result"
     );
-    EventUtils.synthesizeKey("p", { ctrlKey: true });
+    await addressArrow("k");
     Assert.equal(
       gURLBar.view.selectedResult.payload.url,
       first,
-      "Ctrl-p selects previous result"
+      "Alt-k selects previous result"
     );
     gURLBar.search("zzzznohistorymatchzzzz");
     await gURLBar.lastQueryContextPromise;
@@ -1087,7 +1428,7 @@ add_task(async function custom_engine_and_web_mode() {
       Assert.equal(gURLBar.searchMode.engineName, defaultEngine.name);
       EventUtils.sendString(" edited");
       await UrlbarTestUtils.promiseSearchComplete(window);
-      EventUtils.synthesizeKey("n", { ctrlKey: true });
+      await addressArrow("j");
       EventUtils.synthesizeKey(" ", { ctrlKey: true });
       await TestUtils.waitForCondition(
         () => gModalNavigation.urlbar.mode !== "engines"

@@ -17,20 +17,21 @@ modal-mode-hints = Hints ({ $count }): { $prefix }
 # $count is the number of available link hints; $prefix is the letters typed.
 modal-mode-hints-new-tab = New-tab hints ({ $count }): { $prefix }
 
-modal-urlbar-destinations = Enter an address or search the web. Suggestions also include history and bookmarks. Control-N and Control-P select suggestions. Enter accepts the selected suggestion or submits your input.
-modal-urlbar-history = Find a match in history. Control-N and Control-P select suggestions. Enter opens the selected or first match.
-modal-urlbar-bookmarks = Find a bookmark. Control-N and Control-P select suggestions. Enter opens the selected or first match.
-modal-urlbar-tabs = Find an open tab. Control-N and Control-P select suggestions. Enter switches to the selected or first matching tab.
-modal-urlbar-engines = Choose a search engine without clearing your query. Control-N and Control-P select an engine, Enter confirms. Typing edits your query. Control-Space cancels engine selection. Escape leaves the address bar.
+modal-urlbar-destinations = Enter an address or search the web. Suggestions also include history and bookmarks. Alt-J and Alt-K send Down and Up arrows to select suggestions; Alt-H and Alt-L send Left and Right arrows to move the caret. Enter accepts the selected suggestion or submits your input.
+modal-urlbar-history = Find a match in history. Alt-J and Alt-K select suggestions; Alt-H and Alt-L move the caret. Enter opens the selected or first match.
+modal-urlbar-bookmarks = Find a bookmark. Alt-J and Alt-K select suggestions; Alt-H and Alt-L move the caret. Enter opens the selected or first match.
+modal-urlbar-tabs = Find an open tab. Alt-J and Alt-K select suggestions; Alt-H and Alt-L move the caret. Enter switches to the selected or first matching tab.
+modal-urlbar-engines = Choose a search engine without clearing your query. Alt-J and Alt-K select an engine, Enter confirms. Alt-H and Alt-L move the caret. Typing edits your query. Control-Space cancels engine selection. Escape leaves the address bar.
 
 modal-newtab-title = Keyboard shortcut reference
-modal-newtab-intro = Press Escape to leave the address bar, then try these command-mode shortcuts. Click a text field or enter insert mode to type normally. Escape returns to command mode.
-modal-newtab-tip = Keys separated by spaces are pressed in sequence. Ctrl means hold Control while pressing the key. For uppercase letters, hold Shift. Add a number before scrolling or switching tabs to repeat the action.
+modal-newtab-intro = Press Escape to leave the address bar. Shortcuts apply in command mode unless their section names another mode. Click a text field or enter insert mode to type normally. Escape returns to command mode.
+modal-newtab-tip = Keys separated by spaces are pressed in sequence. Ctrl and Alt mean hold Control or Alt while pressing the key. For uppercase letters, hold Shift. Add a number before scrolling or switching tabs to repeat the action.
 modal-newtab-customized = This guide follows your current bindings, including changes to browser.modal.keybindings in about:config.
 
 modal-newtab-group-address = Address-bar navigation
 modal-newtab-group-address-input = While editing the address bar
 modal-newtab-group-editing = Editing
+modal-newtab-group-insert = While in insert mode
 modal-newtab-group-scrolling = Scrolling
 modal-newtab-group-navigation = Tabs and history
 modal-newtab-group-tab-selection = While selecting tabs
@@ -92,8 +93,10 @@ modal-shortcut-urlbar-history = Start a new history search in the address bar
 modal-shortcut-urlbar-bookmarks = Start a new bookmark search in the address bar
 modal-shortcut-urlbar-tabs = Start a new open-tab search in the address bar
 modal-shortcut-urlbar-search = Start a new search with the default search engine
-modal-shortcut-address-next = Select the next suggestion
-modal-shortcut-address-previous = Select the previous suggestion
+modal-shortcut-address-left = Send Left arrow to move the address-bar caret
+modal-shortcut-address-down = Send Down arrow to select the next suggestion
+modal-shortcut-address-up = Send Up arrow to select the previous suggestion
+modal-shortcut-address-right = Send Right arrow to move the address-bar caret
 modal-shortcut-address-engines = Open or close the engine picker without clearing your query
 
 modal-shortcut-tab-group-next = Next tab within the current group
@@ -117,7 +120,7 @@ modal-shortcut-group-select = Select all tabs in the current group
 modal-shortcut-group-fold = Fold the current group
 modal-shortcut-group-unfold = Unfold the current group
 modal-shortcut-group-edit = Edit the current group’s name and colour
-modal-urlbar-group-move = Find a destination group in this window. Control-N and Control-P select suggestions. Enter moves the selected tabs. Escape cancels.
+modal-urlbar-group-move = Find a destination group in this window. Alt-J and Alt-K select suggestions; Alt-H and Alt-L move the caret. Enter moves the selected tabs. Escape cancels.
 modal-group-pinned = Unpin this tab before adding it to a group.
 # $name is the group name; $count is its number of tabs.
 modal-group-result =

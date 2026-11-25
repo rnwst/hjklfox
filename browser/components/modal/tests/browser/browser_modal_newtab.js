@@ -4,7 +4,7 @@
 
 /* global gModalNavigation */
 
-const { DEFAULT_BINDINGS, ADDRESS_BINDINGS, SELECT_BINDINGS } =
+const { DEFAULT_BINDINGS, ADDRESS_BINDINGS, SELECT_BINDINGS, INSERT_BINDINGS } =
   ChromeUtils.importESModule(
     "moz-src:///browser/components/modal/Keymap.sys.mjs"
   );
@@ -21,10 +21,27 @@ add_setup(async function setup() {
 add_task(async function guide_covers_current_commands() {
   const bindings = [
     ...Object.entries(DEFAULT_BINDINGS),
-    ...Object.entries(ADDRESS_BINDINGS),
+    ...Object.entries(ADDRESS_BINDINGS).map(([keys, command]) => [
+      keys,
+      command,
+      "address-input",
+    ]),
     ...Object.entries(SELECT_BINDINGS),
+    ...Object.entries(INSERT_BINDINGS).map(([keys, command]) => [
+      keys,
+      command,
+      "insert",
+    ]),
   ];
-  const commands = [...new Set(bindings.map(([, command]) => command))];
+  const commands = [
+    ...new Set(
+      bindings.map(([, command, group]) =>
+        group === "address-input"
+          ? command.replace("key.", "address.")
+          : command
+      )
+    ),
+  ];
   const ids = commands.map(
     command => `modal-shortcut-${command.replaceAll(".", "-")}`
   );
@@ -58,13 +75,24 @@ add_task(async function guide_covers_current_commands() {
         content.getComputedStyle(doc.querySelector("dl")).display,
         "block"
       );
-      Assert.equal(doc.querySelectorAll("main section h2").length, 8);
-      Assert.ok(
-        doc.querySelector('[data-group="address-input"] [data-keys="C-n"]')
-      );
-      Assert.ok(
-        doc.querySelector('[data-group="address-input"] [data-keys="C-p"]')
-      );
+      Assert.equal(doc.querySelectorAll("main section h2").length, 9);
+      for (const key of ["h", "j", "k", "l"]) {
+        Assert.ok(
+          doc.querySelector(
+            `[data-group="address-input"] [data-keys="A-${key}"]`
+          )
+        );
+      }
+      Assert.ok(!doc.querySelector('[data-keys="C-n"], [data-keys="C-p"]'));
+      for (const key of ["h", "j", "k", "l"]) {
+        for (const group of ["address-input", "insert"]) {
+          Assert.equal(
+            doc.querySelector(`[data-group="${group}"] [data-keys="A-${key}"]`)
+              .textContent,
+            `Alt+${key}`
+          );
+        }
+      }
       const descriptions = [...doc.querySelectorAll("dd")];
       const edge = doc.documentElement.dir === "rtl" ? "right" : "left";
       const alignedEdge = descriptions[0].getBoundingClientRect()[edge];
@@ -83,8 +111,13 @@ add_task(async function guide_covers_current_commands() {
           '[data-group="navigation"] [data-command="history.back"]'
         )
       );
-      for (const [keys, command] of entries) {
-        const row = doc.querySelector(`[data-command="${command}"]`);
+      for (const [keys, command, group] of entries) {
+        const section =
+          group || (command.startsWith("key.") ? "scrolling" : null);
+        const scope = section
+          ? doc.querySelector(`[data-group="${section}"]`)
+          : doc;
+        const row = scope.querySelector(`[data-command="${command}"]`);
         Assert.ok(row, `${command} is included`);
         Assert.ok(
           [...row.querySelectorAll("kbd")].some(

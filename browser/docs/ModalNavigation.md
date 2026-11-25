@@ -29,7 +29,14 @@ mode with no pending key prefix; numeric counts alone do not disable them.
 Tab can move focus and Enter can activate a link or button without
 exposing the keys to page scripts; scripts can still respond to the resulting
 focus changes and clicks. In insert mode, page input works normally, except that
-Escape and the command-only Ctrl-w prefix are withheld from the page. A blocked key that starts outside insert mode cannot
+Escape and the command-only Ctrl-w prefix are withheld from the page.
+Alt-h, Alt-j, Alt-k, and Alt-l send unmodified Left, Down, Up, and Right
+arrow keys respectively, including in page fullscreen. Holding a shortcut repeats
+the arrow; releasing it releases the arrow. Pages can handle or cancel these
+events; otherwise native arrow behavior applies, including moving the caret in
+editors. These shortcuts require Alt alone, without Shift, Control, or Meta,
+and do not intercept IME composition.
+A blocked key that starts outside insert mode cannot
 leak its release or repeat into a newly focused editor. Address-bar focus enters
 its own mode, with normal text editing and the native blue focus border; it never
 applies the green insert-mode toolbar tint.
@@ -239,7 +246,7 @@ tabs or split views from their groups without closing them.
 `tgf` and `tgo` explicitly fold and unfold the current group without
 changing the selected tab. `tge` opens Firefox's native group editor for
 name and colour changes. The `tgm` destination picker shows group sizes and
-folded state; use Ctrl-n/Ctrl-p and Enter to choose, or Escape to cancel.
+folded state; use Alt-j/Alt-k and Enter to choose, or Escape to cancel.
 
 `tgs` selects all eligible tabs in the current group, unfolding it if needed.
 It replaces the previous selection, keeps the displayed tab unchanged, and
@@ -334,7 +341,13 @@ tags. Contiguous matches rank above scattered matches; Firefox frecency breaks
 ties. Ranking is bounded to 1,000 SQL-filtered candidates. Tab results include
 other windows with the same private-browsing and container context.
 
-In the address field, Ctrl-n and Ctrl-p select results without arrow keys.
+In the address field, Alt-h, Alt-j, Alt-k, and Alt-l send unmodified Left,
+Down, Up, and Right arrow keys, just as in insert mode. Up/Down navigate
+suggestions; Left/Right move the caret with Firefox's native autocomplete
+behavior. Presses, repeats, and releases work with the suggestions open or
+closed, across all address-bar pickers. These shortcuts require Alt alone
+and do not intercept IME composition. They replace the custom Ctrl-n/Ctrl-p
+result-navigation bindings.
 In the default destinations mode, Enter navigates to an address or searches with
 the default engine, unless you select a different suggestion. Fuzzy history and
 bookmark matches appear alongside the native suggestions without replacing the
@@ -364,7 +377,7 @@ Ctrl-Space keeps an already active `@` picker instead of replacing its input.
 
 Ctrl-Space opens the engine picker whether or not an engine is already selected.
 The query stays visible and editable while all available engines are listed.
-Select an engine with Ctrl-n/Ctrl-p, then press Enter to confirm it. Press Enter
+Select an engine with Alt-j/Alt-k, then press Enter to confirm it. Press Enter
 again to submit the query to that engine. Ctrl-Space again cancels engine selection
 and restores the previous source/engine while keeping your query edits. Escape
 also restores the previous source/engine, then leaves address-bar mode. This uses

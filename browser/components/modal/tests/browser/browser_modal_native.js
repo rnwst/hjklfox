@@ -69,6 +69,24 @@ add_task(
           await TestUtils.waitForCondition(
             () => document.activeElement === gURLBar.inputField
           );
+          await xdo("type", "--clearmodifiers", "--delay", "1", "abc def");
+          await TestUtils.waitForCondition(() => gURLBar.value === "abc def");
+          await gURLBar.lastQueryContextPromise;
+          gURLBar.inputField.setSelectionRange(3, 3);
+          await nativeAddressArrow("h");
+          Assert.equal(
+            gURLBar.selectionStart,
+            2,
+            "Native Alt-h moves one character left"
+          );
+          Assert.equal(gURLBar.value, "abc def", "Alt-h does not delete text");
+          await nativeAddressArrow("l");
+          Assert.equal(
+            gURLBar.selectionStart,
+            3,
+            "Native Alt-l moves one character right"
+          );
+          await nativeKey("ctrl+a", "Control");
           await xdo("type", "--clearmodifiers", "--delay", "1", "nativepick");
           await TestUtils.waitForCondition(
             () =>
@@ -79,17 +97,17 @@ add_task(
           );
           gURLBar.view.selectedRowIndex = 1;
           const first = gURLBar.view.selectedResult.payload.url;
-          await nativeKey("ctrl+n", "Control");
+          await nativeAddressArrow("j");
           Assert.notEqual(
             gURLBar.view.selectedResult.payload.url,
             first,
-            "Native Ctrl-n selects another result"
+            "Native Alt-j selects another result"
           );
-          await nativeKey("ctrl+p", "Control");
+          await nativeAddressArrow("k");
           Assert.equal(
             gURLBar.view.selectedResult.payload.url,
             first,
-            "Native Ctrl-p returns to the previous result"
+            "Native Alt-k returns to the previous result"
           );
           Assert.deepEqual(
             unexpected,
@@ -179,6 +197,85 @@ async function xdo(...args) {
   return output.trim();
 }
 
+add_task(
+  { skip_if: () => !xdotool },
+  async function native_insert_alt_arrows() {
+    const url =
+      "https://example.com/browser/browser/components/modal/tests/browser/keyboard.html";
+    await BrowserTestUtils.withNewTab(url, async browser => {
+      await TestUtils.waitForCondition(() =>
+        document.title.includes("Modal keyboard isolation test")
+      );
+      await focusNativeBrowser(browser, "Modal keyboard isolation test");
+      await nativeKey("i", "i");
+      await SpecialPowers.spawn(browser, [], () => {
+        const editor = content.document.getElementById("editor");
+        editor.value = "abc def";
+        editor.focus();
+        editor.setSelectionRange(3, 3);
+      });
+      for (const [letter, arrow, position] of [
+        ["h", "ArrowLeft", 2],
+        ["l", "ArrowRight", 3],
+        ["j", "ArrowDown"],
+        ["k", "ArrowUp"],
+      ]) {
+        await SpecialPowers.spawn(browser, [], () => {
+          content.wrappedJSObject.keyEvents.length = 0;
+        });
+        await nativeKey(`alt+${letter}`, "Alt");
+        await SpecialPowers.spawn(
+          browser,
+          [arrow, position],
+          async (key, caret) => {
+            await ContentTaskUtils.waitForCondition(() =>
+              content.wrappedJSObject.keyEvents.some(
+                event => event.type === "keyup" && event.key === key
+              )
+            );
+            const events = content.wrappedJSObject.keyEvents.filter(
+              event => event.key !== "Alt"
+            );
+            Assert.deepEqual(
+              events.map(event => event.key),
+              [key, key]
+            );
+            Assert.ok(
+              events.every(
+                event => event.isTrusted && !event.ctrlKey && !event.altKey
+              )
+            );
+            const editor = content.document.getElementById("editor");
+            Assert.equal(editor.value, "abc def");
+            if (caret !== undefined) {
+              Assert.equal(editor.selectionStart, caret);
+            }
+          }
+        );
+        Assert.equal(gModalNavigation.mode, "insert");
+      }
+      await nativeKey("Escape", "Escape");
+    });
+  }
+);
+
+async function nativeAddressArrow(letter) {
+  const key = {
+    h: "ArrowLeft",
+    j: "ArrowDown",
+    k: "ArrowUp",
+    l: "ArrowRight",
+  }[letter];
+  const released = BrowserTestUtils.waitForEvent(
+    gURLBar.inputField,
+    "keyup",
+    false,
+    event => event.key === key
+  );
+  await nativeKey(`alt+${letter}`, "Alt");
+  await released;
+}
+
 async function nativeChooseEngine(name) {
   const context = await gURLBar.lastQueryContextPromise;
   const index = context.results.findIndex(
@@ -188,7 +285,7 @@ async function nativeChooseEngine(name) {
   const query = gURLBar.value;
   gURLBar.view.selectedRowIndex = -1;
   for (let i = 0; i <= index; i++) {
-    await nativeKey("ctrl+n", "Control");
+    await nativeAddressArrow("j");
     Assert.equal(
       gURLBar.value,
       query,

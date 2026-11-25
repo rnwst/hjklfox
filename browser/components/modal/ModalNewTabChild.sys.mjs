@@ -4,6 +4,7 @@
 
 import {
   ADDRESS_BINDINGS,
+  INSERT_BINDINGS,
   Keymap,
   SELECT_BINDINGS,
 } from "moz-src:///browser/components/modal/Keymap.sys.mjs";
@@ -13,6 +14,7 @@ const GROUPS = {
   address: ["urlbar", "clipboard"],
   "address-input": ["address"],
   editing: ["mode"],
+  insert: [],
   scrolling: ["scroll", "key"],
   navigation: ["tab", "group", "history", "split"],
   "tab-selection": ["selection"],
@@ -53,15 +55,28 @@ export class ModalNewTabChild extends JSWindowActorChild {
       Services.prefs.getStringPref("browser.modal.keybindings", "{}")
     ).bindings;
     const commands = new Map();
-    for (const [keys, command] of [
-      ...Object.entries(bindings),
-      ...Object.entries(ADDRESS_BINDINGS),
-      ...Object.entries(SELECT_BINDINGS),
+    for (const [modeBindings, modeGroup] of [
+      [bindings],
+      [ADDRESS_BINDINGS, "address-input"],
+      [SELECT_BINDINGS],
+      [INSERT_BINDINGS, "insert"],
     ]) {
-      if (!commands.has(command)) {
-        commands.set(command, []);
+      for (const [keys, command] of Object.entries(modeBindings)) {
+        const prefix = command.split(".")[0];
+        const group =
+          modeGroup ||
+          Object.keys(GROUPS).find(name => GROUPS[name].includes(prefix)) ||
+          "other";
+        const id = `${group}:${command}`;
+        if (!commands.has(id)) {
+          const description =
+            group === "address-input"
+              ? command.replace("key.", "address.")
+              : command;
+          commands.set(id, { command, group, description, sequences: [] });
+        }
+        commands.get(id).sequences.push(keys);
       }
-      commands.get(command).push(keys);
     }
     const ids = [
       "modal-newtab-title",
@@ -70,8 +85,9 @@ export class ModalNewTabChild extends JSWindowActorChild {
       "modal-newtab-customized",
       ...Object.keys(GROUPS).map(group => `modal-newtab-group-${group}`),
       ...Array.from(
-        commands.keys(),
-        command => `modal-shortcut-${command.replaceAll(".", "-")}`
+        commands.values(),
+        ({ description }) =>
+          `modal-shortcut-${description.replaceAll(".", "-")}`
       ),
     ];
     const l10n = new Localization(["browser/modal.ftl"]);
@@ -100,11 +116,12 @@ export class ModalNewTabChild extends JSWindowActorChild {
       );
       sections.set(group, section);
     }
-    for (const [command, sequences] of commands) {
-      const prefix = command.split(".")[0];
-      const group =
-        Object.keys(GROUPS).find(name => GROUPS[name].includes(prefix)) ||
-        "other";
+    for (const {
+      command,
+      group,
+      description,
+      sequences,
+    } of commands.values()) {
       const list = sections.get(group).querySelector("dl");
       const row = element("div");
       row.dataset.command = command;
@@ -113,13 +130,19 @@ export class ModalNewTabChild extends JSWindowActorChild {
         if (i) {
           term.append(doc.createTextNode(" / "));
         }
-        const key = element("kbd", sequence.replaceAll("C-", "Ctrl+"));
+        const key = element(
+          "kbd",
+          sequence.replaceAll("C-", "Ctrl+").replaceAll("A-", "Alt+")
+        );
         key.dataset.keys = sequence;
         term.append(key);
       });
       row.append(
         term,
-        element("dd", strings[`modal-shortcut-${command.replaceAll(".", "-")}`])
+        element(
+          "dd",
+          strings[`modal-shortcut-${description.replaceAll(".", "-")}`]
+        )
       );
       list.append(row);
     }

@@ -25,8 +25,10 @@ handoff is not a roadmap.
 
 - Distinguish **command**, **insert**, **address-bar**, **page-search**, and
   **tab-selection**, and **link-hint** modes. Pages receive keyboard events in insert mode,
-  excluding Escape and the command-only Ctrl-w prefix, and arrow-key
-  events in command mode (including `hjkl` translated to Left/Down/Up/Right). Keep
+  excluding Escape and the command-only Ctrl-w prefix. Insert-mode Alt-h/j/k/l
+  send unmodified Left/Down/Up/Right arrows, including in page fullscreen.
+  Pages receive arrow-key events in command mode (including `hjkl` translated
+  to Left/Down/Up/Right). Keep
   native browser shortcuts only in command mode with no pending key prefix
   (a numeric count alone does not block shortcuts). Preserve Tab/Enter defaults without exposing their keys to
   page scripts. Explicit editing focus enters insert mode; unsolicited page
@@ -47,6 +49,8 @@ handoff is not a roadmap.
 - Insert mode uses a prominent theme-aware green toolbar fill. Address-bar mode uses
   native address-bar focus styling and never the green tint. Do not add a visible
   mode text badge.
+  Address-bar Alt-h/j/k/l send unmodified Left/Down/Up/Right arrows for native
+  caret and suggestion navigation, including in every address-bar picker.
 - Tab switching must not resurrect a tab's old insert, address, or search mode,
   including Firefox's native per-tab address/find-field focus memories. Completing a page
   load must not undo a mode deliberately selected while loading.

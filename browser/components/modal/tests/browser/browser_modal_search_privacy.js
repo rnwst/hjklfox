@@ -123,7 +123,10 @@ add_task(
               Assert.greaterOrEqual(index, 0);
               gURLBar.view.selectedRowIndex = -1;
               for (let i = 0; i <= index; i++) {
-                EventUtils.synthesizeKey("n", { ctrlKey: true });
+                EventUtils.synthesizeKey("j", { altKey: true });
+                await TestUtils.waitForCondition(
+                  () => gURLBar.view.selectedRowIndex === i
+                );
               }
               Assert.equal(
                 requests.length,

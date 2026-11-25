@@ -95,6 +95,20 @@ add_task(function bindings_and_modifiers() {
   Assert.equal(keyToken({ key: "a", isComposing: true }), null);
   Assert.equal(keyToken({ key: "Dead" }), null);
   Assert.equal(keyToken({ key: "a", altKey: true, ctrlKey: true }), null);
+  Assert.equal(keyToken({ key: "j", altKey: true }), null);
+  Assert.equal(keyToken({ key: "J", altKey: true }, { allowAlt: true }), "A-j");
+  for (const modifiers of [
+    { ctrlKey: true },
+    { metaKey: true },
+    { isComposing: true },
+    { getModifierState: name => name === "AltGraph" },
+  ]) {
+    Assert.equal(
+      keyToken({ key: "j", altKey: true, ...modifiers }, { allowAlt: true }),
+      null,
+      "Alt arrows exclude other modifiers, AltGraph, and composition"
+    );
+  }
 });
 
 add_task(function new_tab_hints_use_uppercase_w() {
