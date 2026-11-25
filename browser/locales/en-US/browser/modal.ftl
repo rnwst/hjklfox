@@ -42,6 +42,14 @@ modal-newtab-group-other = Other shortcuts
 modal-key-completions-title = { $prefix } — complete a shortcut
 modal-key-completions-cancel = Escape to cancel
 
+modal-clipboard-invalid-url = Clipboard does not contain a valid URL.
+modal-clipboard-read-error = Could not read the clipboard.
+modal-clipboard-copy-error = Could not copy the page URL.
+modal-clipboard-open-error = Could not open the clipboard URL.
+modal-shortcut-clipboard-copy-url = Copy the current page URL
+modal-shortcut-clipboard-open-url = Open the clipboard URL in a new tab
+modal-shortcut-clipboard-open-url-current = Open the clipboard URL in the current tab
+
 modal-shortcut-key-left = Send Left arrow to the page
 modal-shortcut-key-down = Send Down arrow to the page
 modal-shortcut-key-up = Send Up arrow to the page

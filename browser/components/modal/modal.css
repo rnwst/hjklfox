@@ -55,7 +55,8 @@
   display: none !important;
 }
 
-#modal-key-completions {
+#modal-key-completions,
+#modal-clipboard-error {
   position: fixed;
   inset: auto var(--space-medium) auto auto;
   top: calc(var(--modal-key-popup-top, 0px) + var(--space-medium));
@@ -70,6 +71,27 @@
   border: var(--border-width) solid var(--panel-border-color);
   border-radius: var(--panel-border-radius);
   box-shadow: var(--panel-box-shadow);
+}
+
+#modal-clipboard-error {
+  border-color: var(--border-color-error);
+  border-inline-start-width: calc(4 * var(--border-width));
+}
+
+#modal-clipboard-error:popover-open {
+  display: flex;
+  align-items: center;
+  gap: var(--space-medium);
+}
+
+#modal-clipboard-error::before {
+  content: "";
+  flex-shrink: 0;
+  inline-size: var(--size-item-small);
+  block-size: var(--size-item-small);
+  background: url("chrome://global/skin/icons/error.svg") center / contain no-repeat;
+  -moz-context-properties: fill;
+  fill: var(--icon-color-critical);
 }
 
 @media not (forced-colors) {

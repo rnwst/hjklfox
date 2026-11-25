@@ -10,7 +10,7 @@ import {
 
 const PREFS = ["browser.modal.enabled", "browser.modal.keybindings"];
 const GROUPS = {
-  address: ["urlbar"],
+  address: ["urlbar", "clipboard"],
   "address-input": ["address"],
   editing: ["mode"],
   scrolling: ["scroll", "key"],

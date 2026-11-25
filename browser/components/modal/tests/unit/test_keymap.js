@@ -108,6 +108,27 @@ add_task(function new_tab_hints_use_uppercase_w() {
   Assert.equal(keys.feed("w").command, "hint.follow");
 });
 
+add_task(function clipboard_bindings_and_overrides() {
+  const commands = {
+    y: "clipboard.copy-url",
+    p: "clipboard.open-url",
+    P: "clipboard.open-url-current",
+  };
+  for (const [key, command] of Object.entries(commands)) {
+    const keys = new Keymap();
+    keys.feed("Space");
+    Assert.equal(
+      keys.feed(keyToken({ key, shiftKey: key === "P" })).command,
+      command
+    );
+    const custom = new Keymap({ [`Space ${key}`]: null, "g p": command });
+    custom.feed("Space");
+    Assert.equal(custom.feed(key), null);
+    custom.feed("g");
+    Assert.equal(custom.feed("p").command, command);
+  }
+});
+
 add_task(function shared_preference_parsing() {
   const defaults = new Keymap().bindings;
   for (const value of ["invalid", "null", "[]", "true"]) {

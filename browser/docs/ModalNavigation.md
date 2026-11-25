@@ -106,6 +106,21 @@ colors, the tint is omitted.
 | `Space h`, `Space m` | Start a new history or bookmark search in the address bar |
 | `Space b` | Start a new open-tab search in the address bar |
 | `Space s` | Start a new search with the default search engine |
+| `Space y` | Copy the current page URL to the clipboard |
+| `Space p` | Open the clipboard URL in a new foreground tab |
+| `Space P` | Open the clipboard URL in the current tab |
+
+Clipboard shortcuts use the system clipboard, not Linux's primary selection.
+`Space y` copies the loaded page's URL, including its query and fragment, rather
+than unfinished address-bar text. The opening commands trim surrounding whitespace
+and require a complete URL with a scheme, such as `https://example.com/`.
+Empty clipboard contents, plain text, and scheme-less addresses show a small error
+below the toolbar, with an error icon and red border, without opening a tab or
+navigating. There is no search fallback.
+JavaScript URLs are not executed. Clipboard access failures also show an error.
+Messages disappear after four seconds or on the next keypress or mode/tab change,
+without taking focus. Both opening commands preserve the current private-window
+and container context. Numeric counts perform clipboard commands only once.
 
 Numeric prefixes apply to arrow presses, scrolling, tab switching, and tab movement, for example
 `5j`, `3tj`, and `3tJ`. Counts are capped at 999. Keys use logical characters,

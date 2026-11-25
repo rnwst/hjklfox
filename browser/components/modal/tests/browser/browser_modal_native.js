@@ -255,6 +255,69 @@ async function nativeKey(chord, releasedKey) {
 
 add_task(
   { skip_if: () => !xdotool },
+  async function native_clipboard_shortcuts() {
+    const url = `${NATIVE_PAGE}?clipboard#fragment`;
+    await BrowserTestUtils.withNewTab(url, async browser => {
+      await TestUtils.waitForCondition(() =>
+        document.title.includes("Modal native keyboard test")
+      );
+      await focusNativeBrowser(browser);
+      await nativeKey("space", " ");
+      await nativeKey("y", "y");
+      Assert.equal(SpecialPowers.getClipboardData("text/plain"), url);
+      const helper = Cc["@mozilla.org/widget/clipboardhelper;1"].getService(
+        Ci.nsIClipboardHelper
+      );
+      helper.copyStringToClipboard(
+        "Primary selection is not a URL",
+        Services.clipboard.kSelectionClipboard
+      );
+      const count = gBrowser.tabs.length;
+      const opened = BrowserTestUtils.waitForNewTab(gBrowser, url, true);
+      await nativeKey("space", " ");
+      await nativeKey("p", "p");
+      const tab = await opened;
+      try {
+        Assert.equal(gBrowser.selectedTab, tab);
+        Assert.equal(gBrowser.tabs.length, count + 1);
+        const currentURL = `${NATIVE_PAGE}?clipboard-current`;
+        await SimpleTest.promiseClipboardChange(currentURL, () =>
+          helper.copyString(currentURL)
+        );
+        const loaded = BrowserTestUtils.browserLoaded(
+          tab.linkedBrowser,
+          false,
+          currentURL
+        );
+        await nativeKey("space", " ");
+        await nativeKey("shift+p", "Shift");
+        await loaded;
+        Assert.equal(gBrowser.selectedTab, tab);
+        Assert.equal(gBrowser.tabs.length, count + 1);
+        Assert.equal(browser.currentURI.spec, url);
+
+        await SimpleTest.promiseClipboardChange("invalid URL", () =>
+          helper.copyString("invalid URL")
+        );
+        await nativeKey("space", " ");
+        await nativeKey("shift+p", "Shift");
+        await TestUtils.waitForCondition(() =>
+          document
+            .getElementById("modal-clipboard-error")
+            ?.matches(":popover-open")
+        );
+        Assert.equal(tab.linkedBrowser.currentURI.spec, currentURL);
+        Assert.equal(document.activeElement, tab.linkedBrowser);
+        Assert.equal(gModalNavigation.mode, "command");
+      } finally {
+        BrowserTestUtils.removeTab(tab);
+      }
+    });
+  }
+);
+
+add_task(
+  { skip_if: () => !xdotool },
   async function native_tabs_do_not_restore_address_mode() {
     await BrowserTestUtils.withNewTab(NATIVE_PAGE, async browser => {
       await TestUtils.waitForCondition(() =>

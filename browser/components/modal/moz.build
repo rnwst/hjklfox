@@ -6,6 +6,7 @@ MOZ_SRC_FILES += [
     "FuzzySearch.sys.mjs",
     "Keymap.sys.mjs",
     "ModalChild.sys.mjs",
+    "ModalClipboard.sys.mjs",
     "ModalEngines.sys.mjs",
     "ModalFind.sys.mjs",
     "ModalKeyPopup.sys.mjs",

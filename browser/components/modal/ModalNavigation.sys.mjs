@@ -13,6 +13,7 @@ import { ModalKeyPopup } from "moz-src:///browser/components/modal/ModalKeyPopup
 import { ModalFind } from "moz-src:///browser/components/modal/ModalFind.sys.mjs";
 import { ModalTabs } from "moz-src:///browser/components/modal/ModalTabs.sys.mjs";
 import { ModalShortcuts } from "moz-src:///browser/components/modal/ModalShortcuts.sys.mjs";
+import { ModalClipboard } from "moz-src:///browser/components/modal/ModalClipboard.sys.mjs";
 
 const PREF = "browser.modal.enabled";
 const KEYMAP_PREF = "browser.modal.keybindings";
@@ -46,6 +47,7 @@ export class ModalNavigation {
     this.find = new ModalFind(this);
     this.tabs = new ModalTabs(win);
     this.keyPopup = new ModalKeyPopup(win);
+    this.clipboard = new ModalClipboard(win);
     this.mode = "command";
     this.suppressed = new Set();
     this.forwardedKeys = new Map();
@@ -626,6 +628,7 @@ export class ModalNavigation {
     if (["Shift", "Control", "Alt", "Meta", "AltGraph"].includes(event.key)) {
       return;
     }
+    this.clipboard.hideError();
     this.tabFocusPending =
       event.key === "Tab" && !event.ctrlKey && !event.altKey && !event.metaKey;
     if (keyToken(event) === "C-w" && !["command", "hint"].includes(this.mode)) {
@@ -828,6 +831,7 @@ export class ModalNavigation {
   }
 
   resetKeys() {
+    this.clipboard.hideError();
     this.keymap.reset();
     this.selectionKeymap.reset();
     this.keyPopup.hide();
@@ -883,6 +887,10 @@ export class ModalNavigation {
   }
 
   execute({ command, count }) {
+    if (command.startsWith("clipboard.")) {
+      this.clipboard.execute(command.slice("clipboard.".length));
+      return;
+    }
     if (command.startsWith("group.")) {
       this.tabs.execute(command.slice("group.".length));
       return;
@@ -1154,6 +1162,7 @@ export class ModalNavigation {
     this.find.destroy();
     this.restoreChromeTabOrder();
     this.keyPopup.destroy();
+    this.clipboard.destroy();
     this.urlbar?.destroy();
     this.cancelHints();
     this.shortcuts.destroy();
