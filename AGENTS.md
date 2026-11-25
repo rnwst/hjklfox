@@ -25,6 +25,25 @@ available here.
 - Report the exact scope and results of validation. Passing focused tests does
   not establish that the full suite passes.
 
+## X11 fullscreen tests
+
+Before running the full modal suite non-headlessly on Xvfb, start Openbox
+on the same display as Firefox unless a window manager is already running.
+Bare Xvfb can hang `fullscreen_discards_previous_mode` during focus/fullscreen
+handling. For an existing session-local Xvfb on `:99`:
+
+```sh
+mkdir -p /tmp/opencode
+DISPLAY=:99 XDG_CONFIG_HOME=/tmp/opencode/config \
+  XDG_CACHE_HOME=/tmp/opencode/cache openbox --sm-disable \
+  > /tmp/opencode/openbox.log 2>&1 &
+```
+
+Replace `:99` with the actual Xvfb display and use that same `DISPLAY` for the
+native test commands in `PROJECT_INTENT.md`. Headless runs do not need Openbox.
+After testing, stop Openbox with `DISPLAY=:99 openbox --exit` and stop Xvfb
+only if you started those processes for the session.
+
 # Global instructions
 Limit the amount of comments you put in the code to a strict minimum. You should almost never add comments, except sometimes on non-trivial code, function definitions if the arguments aren't self-explanatory, and class definitions and their members.
 
