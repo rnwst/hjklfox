@@ -3,6 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 @media not (forced-colors) {
+  #urlbar {
+    --toolbar-field-border-color: light-dark(var(--color-gray-30), var(--color-gray-50));
+  }
+
   :root[modal-mode="insert"] #nav-bar {
     --modal-toolbar-background-color: color-mix(in srgb, var(--toolbar-background-color) 25%, var(--background-color-success));
     background-color: var(--modal-toolbar-background-color);

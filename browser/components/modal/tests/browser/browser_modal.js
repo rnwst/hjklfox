@@ -557,11 +557,20 @@ add_task(async function toolbar_theme_colors() {
       await openPage(async browser => {
         const toolbar = document.getElementById("nav-bar");
         const normal = getComputedStyle(toolbar).backgroundColor;
+        const urlbarBorder = () =>
+          getComputedStyle(gURLBar.querySelector(".urlbar-background"))
+            .borderTopColor;
+        const normalBorder = urlbarBorder();
         await BrowserTestUtils.synthesizeMouseAtCenter("#editor", {}, browser);
         await TestUtils.waitForCondition(
           () => gModalNavigation.mode === "insert"
         );
         const insert = getComputedStyle(toolbar).backgroundColor;
+        Assert.equal(
+          urlbarBorder(),
+          normalBorder,
+          `${name}: insert keeps the border`
+        );
         const canvas = document.createElementNS(
           "http://www.w3.org/1999/xhtml",
           "canvas"
@@ -588,6 +597,11 @@ add_task(async function toolbar_theme_colors() {
         EventUtils.synthesizeKey("I", { shiftKey: true });
         const strict = getComputedStyle(toolbar).backgroundColor;
         Assert.equal(strict, "rgb(17, 77, 6)", `${name}: dark neon green`);
+        Assert.equal(
+          urlbarBorder(),
+          normalBorder,
+          `${name}: strict insert keeps the border`
+        );
         const luminance = color => {
           ctx.fillStyle = color;
           ctx.fillRect(0, 0, 1, 1);
@@ -624,6 +638,14 @@ add_task(async function toolbar_theme_colors() {
             `${name}: ${selector} contrasts with the strict insert background`
           );
         }
+        const border = luminance(urlbarBorder());
+        const background = luminance(strict);
+        Assert.greaterOrEqual(
+          (Math.max(border, background) + 0.05) /
+            (Math.min(border, background) + 0.05),
+          1.5,
+          `${name}: the general border remains visible against strict insert`
+        );
         EventUtils.synthesizeKey("KEY_Escape", { shiftKey: true });
         EventUtils.synthesizeKey(" ");
         EventUtils.synthesizeKey("e");
