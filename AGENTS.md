@@ -12,18 +12,14 @@ available here.
 
 ## Validation before committing
 
-- Identify the affected components and their consumers, including tests that
-  assert shared defaults or behavior. Update affected expectations alongside the
-  implementation.
-- Use focused tests during development, then run the complete test suites for
-  affected components before committing. For shared infrastructure changes,
-  include affected consumers' suites; do not select tests only by edited files.
-- Run the relevant integration or platform-specific checks when behavior crosses
-  component or platform boundaries.
-- Investigate failures before declaring completion. If a required check is
-  blocked, report the blocker and the coverage that remains unverified.
-- Report the exact scope and results of validation. Passing focused tests does
-  not establish that the full suite passes.
+- Update tests for affected components and consumers alongside the implementation.
+- Use focused or headless tests during development. Before committing, pass
+  complete affected suites and relevant integration/platform checks.
+- Every commit requires the full headful modal browser suite
+  (`browser/components/modal/tests/browser`) on the final changes with matching
+  build artifacts and `HJKLFOX_NATIVE_KEYS=1` on X11; use the Xvfb/Openbox setup below.
+- Report test scope, results, and blockers. Resolve failures or blockers before
+  committing.
 
 ## X11 fullscreen tests
 
@@ -107,10 +103,11 @@ You can find the review identifier by inspecting the commit log with:
 
 ## Workflow
 - This repository moves fast. If the local checkout looks old compared to `origin/main`, suggest pulling the latest changes before going further.
-- You can run tests by using `./mach test --auto`. Once you are satisfied with the tests you run locally, ask the user if they would like you to use `mach try auto` to run tests in CI
+- Propose CI only after identifying an available, applicable job and explaining
+  what additional coverage it provides. Do not offer CI merely as a routine
+  closing question.
 - When running slow commands like `./mach test`, `./mach mochitest`, etc., NEVER pipe their output through `tail`, `grep`, `head`, or other filters. Instead redirect output to a temporary file in `artifacts/` (create if necessary) and selectively read this file. This avoids having to re-run slow commands multiple times to extract different pieces of information.
 - Do not run `./mach build faster` when only front-end test files (JS, HTML, etc.) were modified — they don't need compilation.
-- Running tests with `--headless` is preferred if possible for the patch.
 - Never submit patches to Phabricator without explicit user approval.
 - In commit messages, group reviewers use a `#` prefix: `r?#group-name` (e.g. `r?#linter-reviewers`), while individual reviewers do not: `r?username`
 - Refer to a bug by number as `bug NNNNNN`, and to one of its comments as `bug NNNNNN comment N`; Bugzilla and Phabricator auto-link that form case-insensitively, so capitalize where a sentence or commit subject starts. A bare `comment N` only resolves within the bug it belongs to, so spell the bug number out in commit messages, review comments and other bugs. Comment numbering is 0-based with the description as comment 0: take the number from a comment's `count` field rather than counting the comments you fetched.
