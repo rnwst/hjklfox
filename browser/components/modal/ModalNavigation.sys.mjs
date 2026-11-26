@@ -986,6 +986,9 @@ export class ModalNavigation {
     }
     const browser = this.window.gBrowser;
     switch (command) {
+      case "bookmark.add":
+        this.window.PlacesCommandHook.bookmarkPage().catch(console.error);
+        break;
       case "tab.new":
         this.window.BrowserCommands.openTab();
         break;

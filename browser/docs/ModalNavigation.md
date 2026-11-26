@@ -111,6 +111,7 @@ colors, the tint is omitted.
 | `Space f` | Clear and focus the address bar |
 | `Space e` | Edit the existing address/query without clearing it |
 | `Space h`, `Space m` | Start a new history or bookmark search in the address bar |
+| `Space M` | Add or edit a bookmark for the current tab |
 | `Space b` | Start a new open-tab search in the address bar |
 | `Space s` | Start a new search with the default search engine |
 | `Space y` | Copy the current page URL to the clipboard |
@@ -144,6 +145,10 @@ actions using your current bindings, including custom sequences. Keep typing to
 complete the shortcut; the popup does not take focus. Escape, an unmatched key,
 changing tabs, or leaving command mode dismisses it.
 The popup uses the available page height, minus margins, before scrolling.
+
+Ctrl-d scrolls half a page down; use `Space M` (Space, then Shift-m) to bookmark
+the current tab. This uses Firefox's native bookmark dialog and opens the editor
+for an existing bookmark. Bookmark menus and tooltips show `Space M`.
 
 Alt-d and Ctrl-l no longer focus the address bar; use Space-f from command mode.
 Ctrl-t and Ctrl-w no longer open or close tabs, including in insert mode. Use

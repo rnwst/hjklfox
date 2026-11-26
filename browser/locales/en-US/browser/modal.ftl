@@ -91,6 +91,7 @@ modal-shortcut-urlbar-destinations = Clear and focus the address bar
 modal-shortcut-urlbar-edit = Focus the address bar without clearing its text
 modal-shortcut-urlbar-history = Start a new history search in the address bar
 modal-shortcut-urlbar-bookmarks = Start a new bookmark search in the address bar
+modal-shortcut-bookmark-add = Add or edit a bookmark for the current tab
 modal-shortcut-urlbar-tabs = Start a new open-tab search in the address bar
 modal-shortcut-urlbar-search = Start a new search with the default search engine
 modal-shortcut-address-left = Send Left arrow to move the address-bar caret

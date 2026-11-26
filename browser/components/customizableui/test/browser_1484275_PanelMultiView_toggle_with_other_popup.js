@@ -30,7 +30,7 @@ add_task(async function test_PanelMultiView_toggle_with_other_popup() {
       let bookmarkPanel = document.getElementById("editBookmarkPanel");
       let shown = BrowserTestUtils.waitForEvent(bookmarkPanel, "popupshown");
       let hidden = BrowserTestUtils.waitForEvent(bookmarkPanel, "popuphidden");
-      EventUtils.synthesizeKey("D", { accelKey: true });
+      PlacesCommandHook.bookmarkPage();
       await shown;
 
       // 3. Click the button to which the main menu is anchored. We need a native

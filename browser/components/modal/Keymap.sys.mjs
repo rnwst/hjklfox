@@ -27,6 +27,7 @@ export const DEFAULT_BINDINGS = Object.freeze({
   "Space e": "urlbar.edit",
   "Space h": "urlbar.history",
   "Space m": "urlbar.bookmarks",
+  "Space M": "bookmark.add",
   "Space b": "urlbar.tabs",
   "Space s": "urlbar.search",
   "Space y": "clipboard.copy-url",

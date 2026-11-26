@@ -25,6 +25,50 @@ add_setup(async function native_tools() {
 
 add_task(
   { skip_if: () => !xdotool },
+  async function native_bookmark_shortcut() {
+    await SpecialPowers.pushPrefEnv({
+      set: [["browser.bookmarks.editDialog.showForNewBookmarks", true]],
+    });
+    await BrowserTestUtils.withNewTab(
+      `${NATIVE_PAGE}?bookmark`,
+      async browser => {
+        await TestUtils.waitForCondition(() =>
+          document.title.includes("Modal native keyboard test")
+        );
+        await focusNativeBrowser(browser);
+        StarUI._createPanelIfNeeded();
+        const panel = document.getElementById("editBookmarkPanel");
+        try {
+          const shown = BrowserTestUtils.waitForEvent(panel, "popupshown");
+          await nativeKey("space", " ");
+          await nativeKey("shift+m", "Shift");
+          await shown;
+          Assert.equal(
+            document.getElementById("editBookmarkPanelTitle").dataset.l10nId,
+            "bookmarks-add-bookmark",
+            "Native Space then Shift-m opens the bookmark dialog"
+          );
+          const hidden = BrowserTestUtils.waitForEvent(panel, "popuphidden");
+          await xdo("key", "--clearmodifiers", "Escape");
+          await hidden;
+          Assert.ok(
+            !(await PlacesUtils.bookmarks.fetch({
+              url: browser.currentURI.spec,
+            })),
+            "Escape cancels the new bookmark"
+          );
+        } finally {
+          panel.hidePopup();
+          gModalNavigation.enterCommand();
+        }
+      }
+    );
+    await SpecialPowers.popPrefEnv();
+  }
+);
+
+add_task(
+  { skip_if: () => !xdotool },
   async function native_address_suggestions() {
     const urls = [
       `${NATIVE_PAGE}?nativepick-one`,

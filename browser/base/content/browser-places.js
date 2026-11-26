@@ -1429,7 +1429,7 @@ var BookmarkingUI = {
   STAR_ID: "star-button",
   STAR_BOX_ID: "star-button-box",
   BOOKMARK_BUTTON_ID: "bookmarks-menu-button",
-  BOOKMARK_BUTTON_SHORTCUT: "addBookmarkAsKb",
+  BOOKMARK_BUTTON_SHORTCUT: "Space M",
   get button() {
     delete this.button;
     let widgetGroup = CustomizableUI.getWidget(this.BOOKMARK_BUTTON_ID);
@@ -1934,7 +1934,7 @@ var BookmarkingUI = {
     }
 
     if (!this.starBox) {
-      // The BOOKMARK_BUTTON_SHORTCUT exists only in browser.xhtml.
+      // The star button exists only in browser.xhtml.
       // Return early if we're not in this context, but still reset the
       // Bookmark Page items.
       this.updateBookmarkPageMenuItem(true);
@@ -1942,9 +1942,8 @@ var BookmarkingUI = {
     }
 
     // Update the tooltip for elements that require it.
-    let shortcut = document.getElementById(this.BOOKMARK_BUTTON_SHORTCUT);
     let l10nArgs = {
-      shortcut: ShortcutUtils.prettifyShortcut(shortcut),
+      shortcut: this.BOOKMARK_BUTTON_SHORTCUT,
     };
     document.l10n.setAttributes(
       this.starBox,
@@ -2000,23 +1999,18 @@ var BookmarkingUI = {
           ? "main-context-menu-edit-bookmark-mac"
           : "main-context-menu-bookmark-page-mac";
         document.l10n.setAttributes(contextItem, contextItemL10nId);
+      } else if (this.starBox) {
+        let shortcut = this.BOOKMARK_BUTTON_SHORTCUT;
+        let contextItemL10nId = isStarred
+          ? "main-context-menu-edit-bookmark-with-shortcut-2"
+          : "main-context-menu-bookmark-page-with-shortcut-2";
+        let l10nArgs = { shortcut };
+        document.l10n.setAttributes(contextItem, contextItemL10nId, l10nArgs);
       } else {
-        let shortcutElem = document.getElementById(
-          this.BOOKMARK_BUTTON_SHORTCUT
-        );
-        if (shortcutElem) {
-          let shortcut = ShortcutUtils.prettifyShortcut(shortcutElem);
-          let contextItemL10nId = isStarred
-            ? "main-context-menu-edit-bookmark-with-shortcut-2"
-            : "main-context-menu-bookmark-page-with-shortcut-2";
-          let l10nArgs = { shortcut };
-          document.l10n.setAttributes(contextItem, contextItemL10nId, l10nArgs);
-        } else {
-          let contextItemL10nId = isStarred
-            ? "main-context-menu-edit-bookmark-2"
-            : "main-context-menu-bookmark-page-2";
-          document.l10n.setAttributes(contextItem, contextItemL10nId);
-        }
+        let contextItemL10nId = isStarred
+          ? "main-context-menu-edit-bookmark-2"
+          : "main-context-menu-bookmark-page-2";
+        document.l10n.setAttributes(contextItem, contextItemL10nId);
       }
     }
 

@@ -33,7 +33,7 @@ add_task(async function prefixes_show_available_keys_without_taking_focus() {
     );
     Assert.deepEqual(
       [...panel.querySelectorAll("[data-keys]")].map(row => row.dataset.keys),
-      ["f", "e", "h", "m", "b", "s", "y", "p", "P"]
+      ["f", "e", "h", "m", "M", "b", "s", "y", "p", "P"]
     );
     Assert.ok(
       [...panel.querySelectorAll("dd")].every(node => node.textContent)

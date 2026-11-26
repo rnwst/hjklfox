@@ -76,6 +76,12 @@ async function mouseout() {
   info("Got mouseout event");
 }
 
+function bookmarkShortcut() {
+  win.gModalNavigation.enterCommand();
+  EventUtils.synthesizeKey(" ", {}, win);
+  EventUtils.synthesizeKey("M", { shiftKey: true }, win);
+}
+
 async function test_bookmarks_popup({
   isNewBookmark,
   popupShowFn,
@@ -269,7 +275,7 @@ add_task(
     await test_bookmarks_popup({
       isNewBookmark: true,
       popupShowFn() {
-        EventUtils.synthesizeKey("D", { accelKey: true }, win);
+        bookmarkShortcut();
       },
       shouldAutoClose: true,
       isBookmarkRemoved: false,
@@ -365,7 +371,7 @@ add_task(async function bookmark_with_invalid_default_folder() {
     isNewBookmark: true,
     shouldAutoClose: true,
     async popupShowFn() {
-      EventUtils.synthesizeKey("d", { accelKey: true }, win);
+      bookmarkShortcut();
     },
   });
 });
@@ -540,11 +546,11 @@ add_task(async function bookmarks_menu_new_bookmark_remove_bookmark() {
   });
 });
 
-add_task(async function ctrl_d_edit_bookmark_remove_bookmark() {
+add_task(async function space_M_edit_bookmark_remove_bookmark() {
   await test_bookmarks_popup({
     isNewBookmark: false,
     popupShowFn() {
-      EventUtils.synthesizeKey("D", { accelKey: true }, win);
+      bookmarkShortcut();
     },
     shouldAutoClose: true,
     popupHideFn() {
@@ -564,7 +570,7 @@ add_task(async function enter_on_remove_bookmark_should_remove_bookmark() {
   await test_bookmarks_popup({
     isNewBookmark: true,
     popupShowFn() {
-      EventUtils.synthesizeKey("D", { accelKey: true }, win);
+      bookmarkShortcut();
     },
     shouldAutoClose: true,
     popupHideFn() {
@@ -679,7 +685,7 @@ add_task(async function mouse_hovering_panel_should_prevent_autoclose() {
         offsetX: editBookmarkPanelRemoveButtonRect.left,
         offsetY: editBookmarkPanelRemoveButtonRect.top,
       });
-      EventUtils.synthesizeKey("D", { accelKey: true }, win);
+      bookmarkShortcut();
     },
     shouldAutoClose: false,
     popupHideFn() {
@@ -689,11 +695,11 @@ add_task(async function mouse_hovering_panel_should_prevent_autoclose() {
   });
 });
 
-add_task(async function ctrl_d_new_bookmark_mousedown_mouseout_no_autoclose() {
+add_task(async function space_M_new_bookmark_mousedown_mouseout_no_autoclose() {
   await test_bookmarks_popup({
     isNewBookmark: true,
     popupShowFn() {
-      EventUtils.synthesizeKey("D", { accelKey: true }, win);
+      bookmarkShortcut();
     },
     async popupEditFn() {
       let mouseMovePromise = BrowserTestUtils.waitForEvent(
@@ -740,7 +746,7 @@ add_task(async function enter_during_autocomplete_should_prevent_autoclose() {
     isNewBookmark: false,
     async popupShowFn() {
       PlacesUtils.tagging.tagURI(makeURI(TEST_URL), ["Abc"]);
-      EventUtils.synthesizeKey("d", { accelKey: true }, win);
+      bookmarkShortcut();
     },
     async popupEditFn() {
       // Start autocomplete with the registered tag.
@@ -778,7 +784,7 @@ add_task(async function escape_during_autocomplete_should_prevent_autoclose() {
     isNewBookmark: false,
     async popupShowFn() {
       PlacesUtils.tagging.tagURI(makeURI(TEST_URL), ["Abc"]);
-      EventUtils.synthesizeKey("d", { accelKey: true }, win);
+      bookmarkShortcut();
     },
     async popupEditFn() {
       // Start autocomplete with the registered tag.

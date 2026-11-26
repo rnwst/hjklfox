@@ -1,18 +1,25 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-function invokeUsingCtrlD(phase) {
+/* global gModalNavigation */
+
+function invokeUsingSpaceM(phase) {
   switch (phase) {
     case 1:
-      EventUtils.synthesizeKey("d", { accelKey: true });
+      gModalNavigation.enterCommand();
+      EventUtils.synthesizeKey(" ");
+      EventUtils.synthesizeKey("M", { shiftKey: true });
       break;
     case 2:
     case 4:
       EventUtils.synthesizeKey("KEY_Escape");
       break;
     case 3:
-      EventUtils.synthesizeKey("d", { accelKey: true });
-      EventUtils.synthesizeKey("d", { accelKey: true });
+      gModalNavigation.enterCommand();
+      EventUtils.synthesizeKey(" ");
+      EventUtils.synthesizeKey("M", { shiftKey: true });
+      EventUtils.synthesizeKey(" ");
+      EventUtils.synthesizeKey("M", { shiftKey: true });
       break;
   }
 }
@@ -58,7 +65,7 @@ add_task(async function () {
     "The star state should be starred"
   );
 
-  for (let invoker of [invokeUsingStarButton, invokeUsingCtrlD]) {
+  for (let invoker of [invokeUsingStarButton, invokeUsingSpaceM]) {
     for (let phase = 1; phase < 5; ++phase) {
       let promise = checkBookmarksPanel(phase);
       invoker(phase);

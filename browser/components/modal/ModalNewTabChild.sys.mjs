@@ -11,7 +11,7 @@ import {
 
 const PREFS = ["browser.modal.enabled", "browser.modal.keybindings"];
 const GROUPS = {
-  address: ["urlbar", "clipboard"],
+  address: ["urlbar", "clipboard", "bookmark"],
   "address-input": ["address"],
   editing: ["mode"],
   insert: [],

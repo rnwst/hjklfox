@@ -12,6 +12,8 @@ prefs = ["browser.modal.enabled=true", "general.smoothScroll=false"]
 
 ["browser_modal.js"]
 
+["browser_modal_bookmarks.js"]
+
 ["browser_modal_buttons.js"]
 
 ["browser_modal_clipboard.js"]

@@ -143,6 +143,18 @@ add_task(function clipboard_bindings_and_overrides() {
   }
 });
 
+add_task(function bookmark_binding_is_case_sensitive() {
+  const keys = new Keymap();
+  keys.feed("Space");
+  Assert.equal(
+    keys.feed(keyToken({ key: "M", shiftKey: true })).command,
+    "bookmark.add"
+  );
+  keys.feed("Space");
+  Assert.equal(keys.feed("m").command, "urlbar.bookmarks");
+  Assert.equal(keys.feed("C-d").command, "scroll.half-down");
+});
+
 add_task(function shared_preference_parsing() {
   const defaults = new Keymap().bindings;
   for (const value of ["invalid", "null", "[]", "true"]) {
