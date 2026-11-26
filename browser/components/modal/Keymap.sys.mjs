@@ -53,7 +53,7 @@ export const DEFAULT_BINDINGS = Object.freeze({
   "t g u": "group.ungroup",
   "t g s": "group.select",
   "t g f": "group.fold",
-  "t g o": "group.unfold",
+  "t g F": "group.unfold",
   "t g e": "group.edit",
   "t g j": "tab.group-next",
   "t g k": "tab.group-previous",

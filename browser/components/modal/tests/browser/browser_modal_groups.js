@@ -93,7 +93,14 @@ add_task(async function two_levels_of_navigation() {
     );
     await keys("tk");
     await keys("tgo");
-    Assert.ok(!group.collapsed);
+    Assert.ok(group.collapsed, "The former tgo binding does not unfold");
+    await keys("tgF");
+    Assert.ok(!group.collapsed, "tgF unfolds the current group");
+    Assert.equal(
+      gBrowser.selectedTab,
+      b2,
+      "Unfold keeps the active member selected"
+    );
     await selectTab(a);
     await keys("3tj");
     Assert.equal(

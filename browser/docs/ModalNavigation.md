@@ -97,7 +97,7 @@ colors, the tint is omitted.
 | `tgm` | Move the selected tabs to an existing group |
 | `tgu` | Remove the selected tabs from their groups |
 | `tgs` | Select all tabs in the current group |
-| `tgf`, `tgo` | Fold or unfold the current group |
+| `tgf`, `tgF` | Fold or unfold the current group |
 | `tge` | Edit the current group’s name and colour |
 | `Ctrl-w n` | Create a split view and focus its native tab picker |
 | `Ctrl-w q` | Separate the current split view, keeping its tabs open |
@@ -243,7 +243,7 @@ separated before grouping; the unselected partner remains open in its original
 group, if any. Pinned tabs are excluded from grouping. `tgu` removes the selected
 tabs or split views from their groups without closing them.
 
-`tgf` and `tgo` explicitly fold and unfold the current group without
+`tgf` and `tgF` explicitly fold and unfold the current group without
 changing the selected tab. `tge` opens Firefox's native group editor for
 name and colour changes. The `tgm` destination picker shows group sizes and
 folded state; use Alt-j/Alt-k and Enter to choose, or Escape to cancel.
