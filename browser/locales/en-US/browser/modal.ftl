@@ -4,6 +4,7 @@
 
 modal-mode-command = Command
 modal-mode-insert = Insert
+modal-mode-strict-insert = Strict insert
 modal-mode-address = Address bar
 modal-mode-search = Page search
 # $count is the number of selected tabs.
@@ -24,7 +25,7 @@ modal-urlbar-tabs = Find an open tab. Alt-J and Alt-K select suggestions; Alt-H 
 modal-urlbar-engines = Choose a search engine without clearing your query. Alt-J and Alt-K select an engine, Enter confirms. Alt-H and Alt-L move the caret. Typing edits your query. Control-Space cancels engine selection. Escape leaves the address bar.
 
 modal-newtab-title = Keyboard shortcut reference
-modal-newtab-intro = Press Escape to leave the address bar. Shortcuts apply in command mode unless their section names another mode. Click a text field or enter insert mode to type normally. Escape returns to command mode.
+modal-newtab-intro = Press Escape to leave the address bar. Shortcuts apply in command mode unless their section names another mode. Click a text field or enter insert mode to type normally. Escape returns to command mode. In strict insert mode, all keys go to the page; Shift+Escape returns to command mode.
 modal-newtab-tip = Keys separated by spaces are pressed in sequence. Ctrl and Alt mean hold Control or Alt while pressing the key. For uppercase letters, hold Shift. Add a number before scrolling or switching tabs to repeat the action.
 modal-newtab-customized = This guide follows your current bindings, including changes to browser.modal.keybindings in about:config.
 
@@ -91,6 +92,7 @@ modal-shortcut-history-forward = Forward in history
 modal-shortcut-hint-follow = Follow a link or activate a button using its label
 modal-shortcut-hint-follow-new-tab = Open a link in a new tab using its label
 modal-shortcut-mode-insert = Enter insert mode to type on the page
+modal-shortcut-mode-strict-insert = Enter strict insert mode; pass all keys to the page until Shift+Escape
 modal-shortcut-urlbar-destinations = Clear and focus the address bar
 modal-shortcut-urlbar-edit = Focus the address bar without clearing its text
 modal-shortcut-urlbar-history = Start a new history search in the address bar

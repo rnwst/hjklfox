@@ -23,10 +23,13 @@ handoff is not a roadmap.
 
 ## Behavioral principles
 
-- Distinguish **command**, **insert**, **address-bar**, **page-search**, and
+- Distinguish **command**, **insert**, **strict insert**, **address-bar**, **page-search**,
   **tab-selection**, and **link-hint** modes. Pages receive keyboard events in insert mode,
   excluding Escape and the command-only Ctrl-w prefix. Insert-mode Alt-h/j/k/l
   send unmodified Left/Down/Up/Right arrows, including in page fullscreen.
+  Strict insert mode (`Shift-i`) passes all keys unchanged to the page, including
+  Escape, Ctrl-w, and Alt-h/j/k/l. Only Shift-Escape exits it through the keyboard;
+  page editing focus retains it, and browser shortcuts remain disabled.
   Pages receive arrow-key events in command mode (including `hjkl` translated
   to Left/Down/Up/Right). Keep
   native browser shortcuts only in command mode with no pending key prefix
@@ -46,7 +49,8 @@ handoff is not a roadmap.
   An amber toolbar fill identifies selection mode. Escape retains the selection
   for grouping or closing. Split creation uses the native tab picker,
   deliberately focusing its search field in insert mode.
-- Insert mode uses a prominent theme-aware green toolbar fill. Address-bar mode uses
+- Insert mode uses a prominent theme-aware green toolbar fill; strict insert uses
+  dark neon green with readable text and icons. Address-bar mode uses
   native address-bar focus styling and never the green tint. Do not add a visible
   mode text badge.
   Address-bar Alt-h/j/k/l send unmodified Left/Down/Up/Right arrows for native

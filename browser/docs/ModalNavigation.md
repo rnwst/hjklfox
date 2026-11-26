@@ -8,7 +8,7 @@ fork choices. There is no command prompt.
 
 ## Modes and focus
 
-Each browser window owns one active interaction mode: command, insert, address
+Each browser window owns one active interaction mode: command, insert, strict insert, address
 bar, page search, tab selection, or link hints. Switching between existing tabs returns to command mode;
 neither page editing nor address/find-field focus is restored from a tab. Opening a new tab
 with `tn` focuses its address bar for a new navigation, but revisiting that
@@ -36,6 +36,11 @@ the arrow; releasing it releases the arrow. Pages can handle or cancel these
 events; otherwise native arrow behavior applies, including moving the caret in
 editors. These shortcuts require Alt alone, without Shift, Control, or Meta,
 and do not intercept IME composition.
+Press `Shift-i` (`I`) in command mode to enter strict insert mode, restoring the
+last editor just like `i`. All keys pass unchanged to the page, including Escape,
+Ctrl-w, and Alt-h/j/k/l; browser shortcuts and modal commands are disabled.
+Only `Shift-Escape` leaves strict insert mode and blurs the page editor.
+Clicking or tabbing between page fields keeps strict insert mode.
 A blocked key that starts outside insert mode cannot
 leak its release or repeat into a newly focused editor. Address-bar focus enters
 its own mode, with normal text editing and the native blue focus border; it never
@@ -51,6 +56,7 @@ cancelled query restores the current page's address.
 
 Entering page fullscreen (including videos and video-player containers) activates
 insert mode automatically. Escape exits fullscreen using Firefox's native handling.
+An existing strict insert mode is retained when entering page fullscreen.
 Leaving fullscreen by any route returns to command mode with focus on the page;
 the previous editing mode is not restored. Browser-window fullscreen (F11) does
 not change the interaction mode.
@@ -65,7 +71,9 @@ by page Tab traversal. Native menus and dialogs retain their own input handling.
 
 The navigation toolbar has a prominent green fill in insert mode and an amber
 fill in tab selection mode, blended with the current theme. There is no visible
-mode text badge. A visually hidden localized status announcement identifies
+mode text badge. Strict insert mode uses a dark neon green fill instead,
+with contrasting text and icons.
+A visually hidden localized status announcement identifies
 mode changes to assistive technology. In forced
 colors, the tint is omitted.
 
@@ -109,7 +117,9 @@ colors, the tint is omitted.
 | `/` | Edit a page-search query |
 | `n`, `N` | Next or previous submitted search result |
 | `i` | Enter insert mode |
-| `Esc` | Cancel or return to command mode |
+| `Shift-i` (`I`) | Enter strict insert mode |
+| `Esc` | Cancel or return to command mode, except in strict insert mode |
+| `Shift-Esc` | Leave strict insert mode |
 | `Space f` | Clear and focus the address bar |
 | `Space e` | Edit the existing address/query without clearing it |
 | `Space h`, `Space m` | Start a new history or bookmark search in the address bar |

@@ -8,6 +8,17 @@
     background-color: var(--modal-toolbar-background-color);
   }
 
+  :root[modal-mode="strict-insert"] #nav-bar {
+    --modal-toolbar-background-color: #114d06;
+    background-color: var(--modal-toolbar-background-color);
+    color: white;
+  }
+
+  :root[modal-mode="strict-insert"] #urlbar {
+    --toolbar-field-text-color: white;
+    --urlbar-background-color: transparent;
+  }
+
   :root[modal-mode="select"] #nav-bar {
     --modal-toolbar-background-color: color-mix(in srgb, var(--toolbar-background-color) 25%, var(--background-color-warning));
     background-color: var(--modal-toolbar-background-color);

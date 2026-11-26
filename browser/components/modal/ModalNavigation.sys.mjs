@@ -256,7 +256,11 @@ export class ModalNavigation {
   setMode(mode) {
     if (this.nativeDialogs || this.hasOpenNativePopup()) {
       mode = "command";
-    } else if (this.enabled && this.inDOMFullscreen) {
+    } else if (
+      this.enabled &&
+      this.inDOMFullscreen &&
+      mode !== "strict-insert"
+    ) {
       mode = "insert";
     } else if (mode === "insert" && this.isAddressBarFocus()) {
       mode = "address";
@@ -281,7 +285,10 @@ export class ModalNavigation {
     this.updateShortcuts();
     this.find.updateOptions();
     for (const actor of this.actors()) {
-      send(actor, "Modal:Mode", { insert: mode === "insert" });
+      send(actor, "Modal:Mode", {
+        insert: this.isInsertMode,
+        strict: mode === "strict-insert",
+      });
     }
     this.documentId =
       this.window.gBrowser.selectedBrowser.browsingContext.currentWindowGlobal?.innerWindowId;
@@ -290,6 +297,10 @@ export class ModalNavigation {
       this.window.document.documentElement.setAttribute("modal-mode", mode);
       this.updateIndicator();
     }
+  }
+
+  get isInsertMode() {
+    return this.mode === "insert" || this.mode === "strict-insert";
   }
 
   updateIndicator() {
@@ -455,7 +466,7 @@ export class ModalNavigation {
       this.fullscreenBrowser = win.gBrowser.selectedBrowser;
       this.chromeEditing = false;
       this.urlbar?.reset();
-      this.setMode("insert");
+      this.setMode(this.mode === "strict-insert" ? "strict-insert" : "insert");
       this.fullscreenBrowser.focus();
     } else if (!win.document.fullscreenElement && this.fullscreenBrowser) {
       const browser = this.fullscreenBrowser;
@@ -641,7 +652,7 @@ export class ModalNavigation {
       this.finishKey(event);
       return;
     }
-    if (this.handleArrowKey(event, inContent)) {
+    if (this.handleEditingKey(event, inContent)) {
       return;
     }
     if (this.inDOMFullscreen) {
@@ -721,7 +732,20 @@ export class ModalNavigation {
     }
   }
 
-  handleArrowKey(event, inContent) {
+  handleEditingKey(event, inContent) {
+    if (this.mode === "strict-insert") {
+      if (
+        event.key === "Escape" &&
+        event.shiftKey &&
+        !event.ctrlKey &&
+        !event.altKey &&
+        !event.metaKey
+      ) {
+        this.consume(event);
+        this.enterCommand();
+      }
+      return true;
+    }
     if (event.shiftKey) {
       return false;
     }
@@ -895,10 +919,10 @@ export class ModalNavigation {
   blockPageKeyTail(event, inContent) {
     const code = event.code || event.key;
     const blocked =
-      inContent && this.mode === "insert" && this.pageBlockedKeys.has(code);
+      inContent && this.isInsertMode && this.pageBlockedKeys.has(code);
     if (
       event.type === "keydown" &&
-      this.mode !== "insert" &&
+      !this.isInsertMode &&
       !["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)
     ) {
       this.pageBlockedKeys.add(code);
@@ -1045,7 +1069,8 @@ export class ModalNavigation {
         this.find.again(command === "find.previous");
         break;
       case "mode.insert":
-        this.setMode("insert");
+      case "mode.strict-insert":
+        this.setMode(command.slice("mode.".length));
         send(this.focusedActor(), "Modal:Insert");
         break;
       case "tab.first":

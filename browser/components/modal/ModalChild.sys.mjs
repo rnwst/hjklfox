@@ -23,12 +23,44 @@ export class ModalChild extends JSWindowActorChild {
   needsRetarget = false;
   hintRoots = new Set();
   insertMode = false;
+  strictInsertMode = false;
 
   actorCreated() {
+    this.browserKeyListener = this.handleBrowserKey.bind(this);
+    for (const type of ["keypress", "keyup", "contextmenu"]) {
+      this.contentWindow.addEventListener(type, this.browserKeyListener, {
+        capture: true,
+        mozSystemGroup: true,
+      });
+    }
     this.sendAsyncMessage("Modal:GetMode");
   }
 
+  handleBrowserKey(event) {
+    if (!this.strictInsertMode || !event.isTrusted || event.isComposing) {
+      return;
+    }
+    // Cancel browser defaults only after page listeners have seen the keys.
+    if (
+      (event.type === "keypress" &&
+        ((Services.appinfo.OS !== "Darwin" &&
+          event.altKey &&
+          !event.ctrlKey &&
+          !event.metaKey &&
+          !event.getModifierState("AltGraph")) ||
+          ["F6", "F10", "ZoomIn", "ZoomOut"].includes(event.key) ||
+          (event.key === "Tab" && event.ctrlKey))) ||
+      (event.type === "keyup" && event.key === "Alt") ||
+      (event.type === "contextmenu" && event.button === 0 && !event.ctrlKey)
+    ) {
+      event.preventDefault();
+    }
+  }
+
   handleKeyboardEvent(event) {
+    if (this.strictInsertMode) {
+      return;
+    }
     if (
       this.insertMode &&
       event.type === "keydown" &&
@@ -167,6 +199,7 @@ export class ModalChild extends JSWindowActorChild {
         return this.focusSplitPicker();
       case "Modal:Mode":
         this.insertMode = data.insert;
+        this.strictInsertMode = data.strict;
         break;
       case "Modal:KeyBackdrop":
         this.setKeyBackdrop(data);
@@ -645,6 +678,12 @@ export class ModalChild extends JSWindowActorChild {
   }
 
   didDestroy() {
+    for (const type of ["keypress", "keyup", "contextmenu"]) {
+      this.contentWindow?.removeEventListener(type, this.browserKeyListener, {
+        capture: true,
+        mozSystemGroup: true,
+      });
+    }
     this.setKeyBackdrop(null);
     this.clear();
     this.lastEditor = null;

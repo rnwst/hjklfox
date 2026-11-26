@@ -27,6 +27,8 @@ add_setup(async function () {
 });
 
 async function enterFullscreen(browser, context = browser, video = false) {
+  const mode =
+    gModalNavigation.mode === "strict-insert" ? "strict-insert" : "insert";
   browser.focus();
   const entered = DOMFullscreenTestUtils.waitForFullScreenState(browser, true);
   await SpecialPowers.spawn(context, [video], async useVideo => {
@@ -40,8 +42,8 @@ async function enterFullscreen(browser, context = browser, video = false) {
   await entered;
   Assert.equal(
     gModalNavigation.mode,
-    "insert",
-    "Fullscreen enters insert mode"
+    mode,
+    "Fullscreen enters insert mode or retains strict insert"
   );
   Assert.equal(document.activeElement, browser, "Fullscreen focuses the page");
 }
@@ -105,6 +107,31 @@ add_task(async function fullscreen_discards_previous_mode() {
         );
       });
     }
+  });
+});
+
+add_task(async function fullscreen_retains_strict_insert() {
+  await BrowserTestUtils.withNewTab(FULLSCREEN_PAGE, async browser => {
+    browser.focus();
+    EventUtils.synthesizeKey("I", { shiftKey: true });
+    await enterFullscreen(browser);
+    EventUtils.synthesizeKey("j", { altKey: true });
+    await SpecialPowers.spawn(browser, [], async () => {
+      await ContentTaskUtils.waitForCondition(() =>
+        content.wrappedJSObject.keyEvents.some(
+          event => event.type === "keyup" && event.key === "j" && event.altKey
+        )
+      );
+      Assert.ok(
+        content.wrappedJSObject.keyEvents.every(
+          event => !event.key.startsWith("Arrow")
+        ),
+        "Fullscreen keeps strict insert keys untranslated"
+      );
+    });
+    EventUtils.synthesizeKey("KEY_Escape", { shiftKey: true });
+    Assert.notEqual(gModalNavigation.mode, "strict-insert");
+    await exitFullscreen(browser);
   });
 });
 

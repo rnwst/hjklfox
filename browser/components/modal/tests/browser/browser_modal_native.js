@@ -850,6 +850,89 @@ add_task(
   }
 );
 
+add_task(
+  { skip_if: () => !xdotool },
+  async function native_strict_insert_routing() {
+    const url = NATIVE_PAGE.replace("buttons.html", "keyboard.html");
+    await BrowserTestUtils.withNewTab(url, async browser => {
+      await TestUtils.waitForCondition(() =>
+        document.title.includes("Modal keyboard isolation test")
+      );
+      await focusNativeBrowser(browser, "Modal keyboard isolation test");
+      const commands = [];
+      const onCommand = event => {
+        commands.push(event.target.id);
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      };
+      window.addEventListener("command", onCommand, true);
+      try {
+        await nativeKey("shift+i", "Shift");
+        Assert.equal(gModalNavigation.mode, "strict-insert");
+        const tab = gBrowser.selectedTab;
+        const count = gBrowser.tabs.length;
+        for (const [chord, releasedKey, key] of [
+          ["alt+h", "Alt", "h"],
+          ["alt+j", "Alt", "j"],
+          ["alt+k", "Alt", "k"],
+          ["alt+l", "Alt", "l"],
+          ["ctrl+w", "Control", "w"],
+          ["ctrl+t", "Control", "t"],
+          ["ctrl+p", "Control", "p"],
+          ["ctrl+f", "Control", "f"],
+          ["ctrl+Tab", "Control", "Tab"],
+          ["F6", "F6", "F6"],
+          ["Alt_L", "Alt", "Alt"],
+          ["F10", "F10", "F10"],
+          ["shift+F10", "Shift", "F10"],
+          ["Menu", "ContextMenu", "ContextMenu"],
+          ["F11", "F11", "F11"],
+          ["Escape", "Escape", "Escape"],
+        ]) {
+          await SpecialPowers.spawn(browser, [], () => {
+            content.wrappedJSObject.keyEvents.length = 0;
+          });
+          await nativeKey(chord, releasedKey);
+          await SpecialPowers.spawn(browser, [key], expected => {
+            const events = content.wrappedJSObject.keyEvents;
+            for (const type of ["keydown", "keyup"]) {
+              Assert.ok(
+                events.some(
+                  event => event.key === expected && event.type === type
+                ),
+                `${expected} ${type} reaches the page`
+              );
+            }
+            Assert.ok(events.every(event => !event.key.startsWith("Arrow")));
+          });
+          Assert.equal(gModalNavigation.mode, "strict-insert");
+          Assert.equal(gBrowser.selectedTab, tab);
+          Assert.equal(gBrowser.tabs.length, count);
+          Assert.equal(document.activeElement, browser);
+          Assert.ok(!window.fullScreen);
+        }
+        Assert.deepEqual(commands, [], "No browser commands run");
+        await SpecialPowers.spawn(browser, [], () => {
+          content.wrappedJSObject.keyEvents.length = 0;
+        });
+        await nativeKey("shift+Escape", "Shift");
+        Assert.equal(gModalNavigation.mode, "command");
+        await SpecialPowers.spawn(browser, [], () => {
+          Assert.ok(
+            content.wrappedJSObject.keyEvents.every(
+              event => event.key !== "Escape"
+            ),
+            "The exit chord does not reach the page"
+          );
+        });
+      } finally {
+        window.removeEventListener("command", onCommand, true);
+        gModalNavigation.enterCommand();
+      }
+    });
+  }
+);
+
 add_task({ skip_if: () => !xdotool }, async function native_keyboard_routing() {
   await BrowserTestUtils.withNewTab(NATIVE_PAGE, async browser => {
     await TestUtils.waitForCondition(() =>

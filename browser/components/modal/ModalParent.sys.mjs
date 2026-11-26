@@ -24,12 +24,13 @@ export class ModalParent extends JSWindowActorParent {
     const win = browser?.documentGlobal;
     const controller = win?.gModalNavigation;
     if (name === "Modal:GetMode") {
+      const active =
+        browser === win?.gBrowser?.selectedBrowser &&
+        this.manager === this.browsingContext.currentWindowGlobal &&
+        !!controller?.enabled;
       this.sendAsyncMessage("Modal:Mode", {
-        insert:
-          browser === win?.gBrowser?.selectedBrowser &&
-          this.manager === this.browsingContext.currentWindowGlobal &&
-          !!controller?.enabled &&
-          controller.mode === "insert",
+        insert: active && controller.isInsertMode,
+        strict: active && controller.mode === "strict-insert",
       });
       return;
     }
@@ -44,8 +45,9 @@ export class ModalParent extends JSWindowActorParent {
     }
     if (name === "Modal:Insert") {
       if (
-        data.reason === "pointer" ||
-        (data.reason === "keyboard" && controller.tabFocusPending)
+        controller.mode !== "strict-insert" &&
+        (data.reason === "pointer" ||
+          (data.reason === "keyboard" && controller.tabFocusPending))
       ) {
         controller.setMode("insert");
       }

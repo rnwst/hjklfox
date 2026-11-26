@@ -585,6 +585,46 @@ add_task(async function toolbar_theme_colors() {
           normal,
           `${name}: normal color restored`
         );
+        EventUtils.synthesizeKey("I", { shiftKey: true });
+        const strict = getComputedStyle(toolbar).backgroundColor;
+        Assert.equal(strict, "rgb(17, 77, 6)", `${name}: dark neon green`);
+        const luminance = color => {
+          ctx.fillStyle = color;
+          ctx.fillRect(0, 0, 1, 1);
+          const channels = [...ctx.getImageData(0, 0, 1, 1).data]
+            .slice(0, 3)
+            .map(value => {
+              value /= 255;
+              return value <= 0.04045
+                ? value / 12.92
+                : ((value + 0.055) / 1.055) ** 2.4;
+            });
+          return (
+            channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722
+          );
+        };
+        for (const [selector, minimum] of [
+          [".urlbar-input", 4.5],
+          ["#identity-icon", 3],
+          ["#tracking-protection-icon", 3],
+        ]) {
+          ctx.fillStyle = strict;
+          ctx.fillRect(0, 0, 1, 1);
+          const background = luminance(
+            getComputedStyle(document.querySelector(".urlbar-background"))
+              .backgroundColor
+          );
+          const foreground = luminance(
+            getComputedStyle(document.querySelector(selector)).color
+          );
+          Assert.greaterOrEqual(
+            (Math.max(background, foreground) + 0.05) /
+              (Math.min(background, foreground) + 0.05),
+            minimum,
+            `${name}: ${selector} contrasts with the strict insert background`
+          );
+        }
+        EventUtils.synthesizeKey("KEY_Escape", { shiftKey: true });
         EventUtils.synthesizeKey(" ");
         EventUtils.synthesizeKey("e");
         await TestUtils.waitForCondition(

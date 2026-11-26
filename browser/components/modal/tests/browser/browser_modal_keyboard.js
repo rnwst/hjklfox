@@ -10,10 +10,12 @@ const KEYBOARD_PAGE =
 async function recordedKeys(context, completedKey = null) {
   return SpecialPowers.spawn(context, [completedKey], async key => {
     if (key) {
-      await ContentTaskUtils.waitForCondition(() =>
-        content.wrappedJSObject.keyEvents.some(
-          event => event.type === "keyup" && event.key === key
-        )
+      await ContentTaskUtils.waitForCondition(
+        () =>
+          content.wrappedJSObject.keyEvents.some(
+            event => event.type === "keyup" && event.key === key
+          ),
+        `The page receives the ${key} release`
       );
     }
     return content.wrappedJSObject.keyEvents;
@@ -31,7 +33,14 @@ add_task(async function native_shortcuts_follow_mode_and_prefix() {
     window.addEventListener("command", onCommand, true);
     try {
       browser.focus();
-      for (const mode of ["insert", "address", "search", "select", "hint"]) {
+      for (const mode of [
+        "insert",
+        "strict-insert",
+        "address",
+        "search",
+        "select",
+        "hint",
+      ]) {
         gModalNavigation.setMode(mode);
         EventUtils.synthesizeKey("p", { accelKey: true });
         await SpecialPowers.spawn(browser, [], () => {});
@@ -84,7 +93,10 @@ add_task(async function native_shortcuts_follow_mode_and_prefix() {
         "A count permits shortcuts"
       );
       EventUtils.synthesizeKey("p", { accelKey: true });
-      await TestUtils.waitForCondition(() => commands.length);
+      await TestUtils.waitForCondition(
+        () => commands.length,
+        "Command-mode Ctrl+p invokes Print"
+      );
       commands.length = 0;
 
       gModalNavigation.setMode("insert");
@@ -130,6 +142,154 @@ add_task(async function native_shortcuts_follow_mode_and_prefix() {
       window.removeEventListener("command", onCommand, true);
       gModalNavigation.setMode("command");
     }
+  });
+});
+
+add_task(async function strict_insert_passes_keys_unchanged() {
+  await BrowserTestUtils.withNewTab(KEYBOARD_PAGE, async browser => {
+    browser.focus();
+    const toolbar = document.getElementById("nav-bar");
+    const normal = getComputedStyle(toolbar).backgroundColor;
+    EventUtils.synthesizeKey("i");
+    const insert = getComputedStyle(toolbar).backgroundColor;
+    EventUtils.synthesizeKey("KEY_Escape");
+    EventUtils.synthesizeKey("I", { shiftKey: true, type: "keydown" });
+    EventUtils.synthesizeKey("I", {
+      shiftKey: true,
+      type: "keydown",
+      repeat: 2,
+    });
+    EventUtils.synthesizeKey("I", { shiftKey: true, type: "keyup" });
+    Assert.equal(gModalNavigation.mode, "strict-insert");
+    Assert.equal(
+      getComputedStyle(toolbar).backgroundColor,
+      "rgb(17, 77, 6)",
+      "Strict insert has a dark neon green toolbar"
+    );
+    Assert.notEqual(getComputedStyle(toolbar).backgroundColor, insert);
+    Assert.deepEqual(
+      await recordedKeys(browser),
+      [],
+      "The entering key, repeats, and release stay private"
+    );
+    for (const [key, options, expected] of [
+      ["x", { repeat: 3 }, "x"],
+      ["h", { altKey: true }, "h"],
+      ["j", { altKey: true }, "j"],
+      ["k", { altKey: true }, "k"],
+      ["l", { altKey: true }, "l"],
+      ["w", { ctrlKey: true }, "w"],
+      ["p", { accelKey: true }, "p"],
+      ["KEY_F8", {}, "F8"],
+      ["KEY_Escape", {}, "Escape"],
+      ["KEY_Escape", { ctrlKey: true, shiftKey: true }, "Escape"],
+    ]) {
+      await SpecialPowers.spawn(browser, [], () => {
+        content.wrappedJSObject.keyEvents.length = 0;
+      });
+      EventUtils.synthesizeKey(key, options);
+      const events = await recordedKeys(browser, expected);
+      Assert.equal(events[0].type, "keydown");
+      Assert.equal(events.at(-1).type, "keyup");
+      Assert.ok(
+        events.every(
+          event =>
+            event.key === expected &&
+            event.altKey === !!options.altKey &&
+            event.shiftKey === !!options.shiftKey &&
+            event.isTrusted
+        ),
+        `${key} reaches the page unchanged`
+      );
+      Assert.equal(gModalNavigation.mode, "strict-insert");
+    }
+    await SpecialPowers.spawn(browser, [], () => {
+      content.wrappedJSObject.keyEvents.length = 0;
+    });
+    EventUtils.synthesizeKey("KEY_Escape", { shiftKey: true });
+    EventUtils.synthesizeKey("x");
+    Assert.equal(gModalNavigation.mode, "command");
+    Assert.equal(getComputedStyle(toolbar).backgroundColor, normal);
+    Assert.deepEqual(
+      await recordedKeys(browser),
+      [],
+      "Shift+Escape and later command keys stay private"
+    );
+  });
+});
+
+add_task(async function strict_insert_survives_page_focus_changes() {
+  await BrowserTestUtils.withNewTab(KEYBOARD_PAGE, async browser => {
+    browser.focus();
+    await BrowserTestUtils.synthesizeMouseAtCenter("#editor", {}, browser);
+    await TestUtils.waitForCondition(() => gModalNavigation.mode === "insert");
+    EventUtils.synthesizeKey("KEY_Escape");
+    EventUtils.synthesizeKey("I", { shiftKey: true });
+    EventUtils.synthesizeKey("x");
+    await SpecialPowers.spawn(browser, [], async () => {
+      await ContentTaskUtils.waitForCondition(
+        () => content.document.getElementById("editor").value === "x"
+      );
+      content.document.getElementById("button").focus();
+    });
+    EventUtils.synthesizeKey("KEY_Tab");
+    await SpecialPowers.spawn(browser, [], async () => {
+      await ContentTaskUtils.waitForCondition(
+        () => content.document.activeElement.id === "editor"
+      );
+    });
+    await BrowserTestUtils.synthesizeMouseAtCenter("#editor", {}, browser);
+    Assert.equal(
+      gModalNavigation.mode,
+      "strict-insert",
+      "Tabbing and clicking editors retain strict insert"
+    );
+    EventUtils.synthesizeKey("KEY_Escape");
+    await SpecialPowers.spawn(browser, [], () => {
+      Assert.equal(content.document.activeElement.id, "editor");
+    });
+    EventUtils.synthesizeKey("KEY_Escape", { shiftKey: true });
+    await SpecialPowers.spawn(browser, [], () => {
+      Assert.notEqual(content.document.activeElement.id, "editor");
+    });
+    Assert.equal(gModalNavigation.mode, "command");
+  });
+});
+
+add_task(async function strict_insert_reaches_new_remote_frames() {
+  await BrowserTestUtils.withNewTab(KEYBOARD_PAGE, async browser => {
+    browser.focus();
+    EventUtils.synthesizeKey("I", { shiftKey: true });
+    await SpecialPowers.spawn(
+      browser,
+      [KEYBOARD_PAGE.replace("example.com", "example.org")],
+      async url => {
+        const frame = content.document.createElement("iframe");
+        frame.src = url;
+        const loaded = ContentTaskUtils.waitForEvent(frame, "load");
+        content.document.body.append(frame);
+        await loaded;
+        frame.focus();
+      }
+    );
+    const frame = browser.browsingContext.children[0];
+    await SpecialPowers.spawn(frame, [], async () => {
+      content.focus();
+      await ContentTaskUtils.waitForCondition(
+        () => content.windowGlobalChild.getActor("Modal").strictInsertMode
+      );
+    });
+    EventUtils.synthesizeKey("KEY_Escape");
+    EventUtils.synthesizeKey("j", { altKey: true });
+    const events = await recordedKeys(frame, "j");
+    Assert.ok(events.some(event => event.key === "Escape"));
+    Assert.ok(events.some(event => event.key === "j" && event.altKey));
+    Assert.ok(events.every(event => !event.key.startsWith("Arrow")));
+    Assert.equal(gModalNavigation.mode, "strict-insert");
+    EventUtils.synthesizeKey("KEY_Escape", { shiftKey: true });
+    EventUtils.synthesizeKey("x");
+    Assert.deepEqual(await recordedKeys(frame), events);
+    Assert.equal(gModalNavigation.mode, "command");
   });
 });
 
