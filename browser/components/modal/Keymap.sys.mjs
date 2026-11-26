@@ -40,6 +40,8 @@ export const DEFAULT_BINDINGS = Object.freeze({
   "t N": "tab.new-before",
   "t u": "tab.reopen",
   "t q": "tab.close",
+  "t p": "tab.pin",
+  "t P": "tab.unpin",
   "t v": "tab.select",
   "t ;": "tab.deselect",
   "t k": "tab.previous",

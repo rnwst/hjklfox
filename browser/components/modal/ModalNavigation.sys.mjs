@@ -1005,6 +1005,10 @@ export class ModalNavigation {
       case "tab.close":
         this.window.BrowserCommands.closeTabOrWindow();
         break;
+      case "tab.pin":
+      case "tab.unpin":
+        this.tabs.setPinned(command === "tab.pin");
+        break;
       case "tab.select":
         this.tabs.startSelection();
         break;
@@ -1023,9 +1027,9 @@ export class ModalNavigation {
       case "selection.first":
       case "selection.last":
         this.tabs.extendSelection(
-          command === "selection.next" || command === "selection.last" ? 1 : -1,
+          ["selection.next", "selection.last"].includes(command) ? 1 : -1,
           count,
-          command === "selection.first" || command === "selection.last"
+          ["selection.first", "selection.last"].includes(command)
         );
         break;
       case "split.new":

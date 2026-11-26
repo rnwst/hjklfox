@@ -84,6 +84,7 @@ colors, the tint is omitted.
 | `tN` | Open a new tab before the current tab |
 | `tu` | Reopen the last closed tab (replaces Ctrl-Shift-T) |
 | `tq` | Close all selected tabs, or the current tab |
+| `tp`, `tP` | Pin or unpin the selected tabs, or the current tab |
 | `tv` | Enter tab selection mode |
 | `t;` | Deselect all tabs except the current tab |
 | `tJ`, `tK` | Move the selected tabs forward or backward |
@@ -168,6 +169,20 @@ Control, such as `C-d` or `Space f`.
 in command mode. Command identifiers and defaults are in `Keymap.sys.mjs`;
 unknown command identifiers are ignored. Escape remains the fixed cancellation
 key. Avoid assigning a complete command to a prefix used by longer sequences.
+
+## Pinned tabs
+
+`tp` pins the selected tabs; `tP` unpins them. Without a multiselection, they
+act on the current tab. Tabs already in the requested state stay unchanged.
+Numeric prefixes perform the action only once. Both commands keep the active
+tab, selection, and command mode, preserving the relative order of tabs being
+pinned or unpinned.
+
+Pinning removes tabs from their groups. Split views containing selected tabs
+are separated first, keeping normal tabs open and unselected partners in their
+original groups. Firefox removes a split's temporary tab picker when separating
+it. Unpinning places tabs at the beginning of the unpinned section without
+restoring previous groups or split views.
 
 ## Tab history
 

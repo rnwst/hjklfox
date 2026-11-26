@@ -40,6 +40,8 @@ skip-if = [
 
 ["browser_modal_newtab.js"]
 
+["browser_modal_pinning.js"]
+
 ["browser_modal_search.js"]
 
 ["browser_modal_search_privacy.js"]

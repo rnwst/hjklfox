@@ -179,12 +179,12 @@ export class ModalTabs {
     return this.window.gBrowser.selectedTabs.filter(tab => !tab.pinned);
   }
 
-  groupingElements(tabs) {
+  separateSplits(tabs, all = false) {
     const selected = new Set(tabs);
     const splits = new Set(tabs.map(tab => tab.splitview).filter(Boolean));
     for (const split of splits) {
       const members = split.tabs;
-      if (!members.every(tab => selected.has(tab))) {
+      if (all || !members.every(tab => selected.has(tab))) {
         const group = split.group;
         const collapsed = group?.collapsed;
         split.unsplitTabs("keyboard_shortcut");
@@ -197,11 +197,34 @@ export class ModalTabs {
         }
       }
     }
+  }
+
+  groupingElements(tabs) {
+    this.separateSplits(tabs);
     return [
       ...new Set(
         tabs.filter(tab => tab.isOpen).map(tab => tab.splitview || tab)
       ),
     ];
+  }
+
+  setPinned(pinned) {
+    const browser = this.window.gBrowser;
+    const selected = [...browser.selectedTabs];
+    const active = browser.selectedTab;
+    if (pinned) {
+      this.separateSplits(selected, true);
+      this.replaceSelection(selected.filter(tab => tab.isOpen));
+    }
+    browser[pinned ? "pinMultiSelectedTabs" : "unpinMultiSelectedTabs"]({
+      metricsContext: browser.TabMetrics.userTriggeredContext(
+        browser.TabMetrics.METRIC_SOURCE.KEYBOARD
+      ),
+    });
+    if (active.isOpen && browser.selectedTab !== active) {
+      browser.selectedTab = active;
+    }
+    this.replaceSelection(selected.filter(tab => tab.isOpen));
   }
 
   activate(tab) {

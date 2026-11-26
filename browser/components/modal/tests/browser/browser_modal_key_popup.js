@@ -92,6 +92,8 @@ add_task(async function prefixes_show_available_keys_without_taking_focus() {
         "N",
         "u",
         "q",
+        "p",
+        "P",
         "v",
         ";",
         "k",

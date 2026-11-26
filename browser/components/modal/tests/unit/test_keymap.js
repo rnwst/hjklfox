@@ -52,6 +52,31 @@ add_task(function tab_history_bindings_and_counts() {
   Assert.equal(custom.feed("o").command, "tab.history-back");
 });
 
+add_task(function pin_bindings_counts_and_overrides() {
+  for (const [key, command] of [
+    ["p", "tab.pin"],
+    ["P", "tab.unpin"],
+  ]) {
+    const keys = new Keymap();
+    keys.feed("3");
+    keys.feed("t");
+    Assert.ok(
+      keys
+        .completions()
+        .some(item => item.keys === key && item.command === command)
+    );
+    Assert.deepEqual(keys.feed(keyToken({ key, shiftKey: key === "P" })), {
+      command,
+      count: 3,
+    });
+    const custom = new Keymap({ [`t ${key}`]: null, "g p": command });
+    custom.feed("t");
+    Assert.equal(custom.feed(key), null);
+    custom.feed("g");
+    Assert.equal(custom.feed("p").command, command);
+  }
+});
+
 add_task(function tab_prefixes_have_no_terminal_conflicts() {
   const keys = new Keymap({ "t t": "group.pick" });
   const bindings = Object.keys(keys.bindings);
