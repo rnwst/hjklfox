@@ -85,6 +85,7 @@ colors, the tint is omitted.
 | `tu` | Reopen the last closed tab (replaces Ctrl-Shift-T) |
 | `tq` | Close all selected tabs, or the current tab |
 | `tp`, `tP` | Pin or unpin the selected tabs, or the current tab |
+| `tm`, `tM` | Mute or unmute the current tab |
 | `tv` | Enter tab selection mode |
 | `t;` | Deselect all tabs except the current tab |
 | `tJ`, `tK` | Move the selected tabs forward or backward |
@@ -169,6 +170,13 @@ Control, such as `C-d` or `Space f`.
 in command mode. Command identifiers and defaults are in `Keymap.sys.mjs`;
 unknown command identifiers are ignored. Escape remains the fixed cancellation
 key. Avoid assigning a complete command to a prefix used by longer sequences.
+
+## Tab audio
+
+`tm` mutes the current tab; `tM` unmutes it. Tabs already in the requested
+state stay unchanged. Other tabs, including multiselected tabs, are unaffected.
+Numeric prefixes perform the action only once. Both commands preserve page
+focus, tab selection, and command mode.
 
 ## Pinned tabs
 

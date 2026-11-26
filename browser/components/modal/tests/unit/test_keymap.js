@@ -52,10 +52,12 @@ add_task(function tab_history_bindings_and_counts() {
   Assert.equal(custom.feed("o").command, "tab.history-back");
 });
 
-add_task(function pin_bindings_counts_and_overrides() {
+add_task(function pin_and_mute_bindings_counts_and_overrides() {
   for (const [key, command] of [
     ["p", "tab.pin"],
     ["P", "tab.unpin"],
+    ["m", "tab.mute"],
+    ["M", "tab.unmute"],
   ]) {
     const keys = new Keymap();
     keys.feed("3");
@@ -65,10 +67,10 @@ add_task(function pin_bindings_counts_and_overrides() {
         .completions()
         .some(item => item.keys === key && item.command === command)
     );
-    Assert.deepEqual(keys.feed(keyToken({ key, shiftKey: key === "P" })), {
-      command,
-      count: 3,
-    });
+    Assert.deepEqual(
+      keys.feed(keyToken({ key, shiftKey: /^[A-Z]$/.test(key) })),
+      { command, count: 3 }
+    );
     const custom = new Keymap({ [`t ${key}`]: null, "g p": command });
     custom.feed("t");
     Assert.equal(custom.feed(key), null);
@@ -90,7 +92,7 @@ add_task(function tab_prefixes_have_no_terminal_conflicts() {
       `${sequence} does not mask a longer command`
     );
   }
-  for (const sequence of ["g n", "g p", "g N", "g P", "t m", "t t"]) {
+  for (const sequence of ["g n", "g p", "g N", "g P", "t t"]) {
     Assert.ok(
       !bindings.includes(sequence),
       `${sequence} is no longer a default binding`

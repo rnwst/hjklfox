@@ -972,6 +972,9 @@ export class ModalNavigation {
   }
 
   execute({ command, count }) {
+    if (this.tabs.executeTabState(command)) {
+      return;
+    }
     if (command.startsWith("clipboard.")) {
       this.clipboard.execute(command.slice("clipboard.".length));
       return;
@@ -1004,10 +1007,6 @@ export class ModalNavigation {
         break;
       case "tab.close":
         this.window.BrowserCommands.closeTabOrWindow();
-        break;
-      case "tab.pin":
-      case "tab.unpin":
-        this.tabs.setPinned(command === "tab.pin");
         break;
       case "tab.select":
         this.tabs.startSelection();

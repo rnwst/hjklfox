@@ -208,6 +208,24 @@ export class ModalTabs {
     ];
   }
 
+  executeTabState(command) {
+    switch (command) {
+      case "tab.pin":
+      case "tab.unpin":
+        this.setPinned(command === "tab.pin");
+        return true;
+      case "tab.mute":
+      case "tab.unmute": {
+        const tab = this.window.gBrowser.selectedTab;
+        if (tab.linkedBrowser.audioMuted !== (command === "tab.mute")) {
+          tab.toggleMuteAudio();
+        }
+        return true;
+      }
+    }
+    return false;
+  }
+
   setPinned(pinned) {
     const browser = this.window.gBrowser;
     const selected = [...browser.selectedTabs];
